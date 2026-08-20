@@ -25,7 +25,6 @@ typedef struct TcpServer {
   int32_t                 ListenFd;
   struct pollfd*          PollFds;
   void**                  ClientsData;
-  TcpClient*              Clients;
   uint16_t                MaxClients;
   uint16_t                ClientCount;
   bool                    Running;

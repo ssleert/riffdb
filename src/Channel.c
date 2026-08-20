@@ -9,7 +9,7 @@ ChannelNew(void)
     return NULL;
   }
 
-  Self->Queue = (Queue){ 0 };
+  Self->Q = (Queue){ 0 };
   if (mtx_init(&Self->Mutex, mtx_plain) != thrd_success) {
     free(Self);
     return NULL;
@@ -33,9 +33,9 @@ ChannelFree(Channel* Self)
 
   mtx_lock(&Self->Mutex);
 
-  while (!QueueIsEmpty(&Self->Queue)) {
-    QueueNode* Temp = Self->Queue.Front;
-    Self->Queue.Front = Self->Queue.Front->Next;
+  while (!QueueIsEmpty(&Self->Q)) {
+    QueueNode* Temp = Self->Q.Front;
+    Self->Q.Front = Self->Q.Front->Next;
     free(Temp);
   }
 
@@ -50,7 +50,7 @@ void
 ChannelSend(Channel* Self, void* Data)
 {
   mtx_lock(&Self->Mutex);
-  Enqueue(&Self->Queue, Data);
+  Enqueue(&Self->Q, Data);
   cnd_signal(&Self->Cond);
   mtx_unlock(&Self->Mutex);
 }
@@ -60,11 +60,11 @@ ChannelRecv(Channel* Self)
 {
   mtx_lock(&Self->Mutex);
 
-  while (QueueIsEmpty(&Self->Queue)) {
+  while (QueueIsEmpty(&Self->Q)) {
     cnd_wait(&Self->Cond, &Self->Mutex);
   }
 
-  void* Data = Dequeue(&Self->Queue);
+  void* Data = Dequeue(&Self->Q);
   mtx_unlock(&Self->Mutex);
   return Data;
 }
@@ -74,12 +74,12 @@ ChannelTryRecv(Channel* Self)
 {
   mtx_lock(&Self->Mutex);
 
-  if (QueueIsEmpty(&Self->Queue)) {
+  if (QueueIsEmpty(&Self->Q)) {
     mtx_unlock(&Self->Mutex);
     return NULL;
   }
 
-  void* Data = Dequeue(&Self->Queue);
+  void* Data = Dequeue(&Self->Q);
   mtx_unlock(&Self->Mutex);
   return Data;
 }

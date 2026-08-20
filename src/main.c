@@ -95,7 +95,7 @@ main(int32_t Argc, char* Argv[])
 
   TcpServer Server;
 
-  if (TcpServerCreate(&Server, 8080, 4096) != 0) {
+  if (TcpServerCreate(&Server, 8081, 4096) != 0) {
     perror("Failed to create server");
     return 1;
   }

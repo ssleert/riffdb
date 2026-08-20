@@ -6,7 +6,7 @@
 #include <threads.h>
 
 typedef struct {
-  Queue Queue;
+  Queue Q;
   mtx_t Mutex;
   cnd_t Cond;
 } Channel;

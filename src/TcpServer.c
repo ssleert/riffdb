@@ -27,7 +27,7 @@ SetNonBlocking(int32_t Fd)
 static void
 RemoveClient(TcpServer* Server, uint16_t Index)
 {
-  int32_t Fd = Server->Clients[Index].Fd;
+  int32_t Fd = Server->PollFds[Index + 1].fd;
   void* ClientData = Server->ClientsData[Index];
 
   Server->OnDisconnect(Server, Fd, ClientData);
@@ -36,7 +36,6 @@ RemoveClient(TcpServer* Server, uint16_t Index)
 
   uint16_t Last = Server->ClientCount - 1;
   if (Index != Last) {
-    Server->Clients[Index] = Server->Clients[Last];
     Server->ClientsData[Index] = Server->ClientsData[Last];
     Server->PollFds[Index + 1] = Server->PollFds[Last + 1];
   }
@@ -61,9 +60,8 @@ TcpServerCreate(TcpServer* Server, uint16_t Port, uint16_t MaxClients)
     Server->ListenFd = -1;
 
     Server->PollFds = calloc((size_t)MaxClients + 1, sizeof(struct pollfd));
-    Server->Clients = calloc(MaxClients, sizeof(TcpClient));
     Server->ClientsData = calloc(MaxClients, sizeof(Server->ClientsData[0]));
-    if (!Server->PollFds || !Server->Clients || !Server->ClientsData) {
+    if (!Server->PollFds || !Server->ClientsData) {
       isError = true;
       goto error;
     }
@@ -106,7 +104,6 @@ error:
       close(ListenFd);
     }
     free(Server->PollFds);
-    free(Server->Clients);
     free(Server->ClientsData);
 
     return -1;
@@ -130,7 +127,7 @@ TcpServerDestroy(TcpServer* Server)
   TcpServerStop(Server);
 
   for (uint16_t i = 0; i < Server->ClientCount; i++) {
-    close(Server->Clients[i].Fd);
+    close(Server->PollFds[i + 1].fd);
   }
 
   if (Server->ListenFd >= 0) {
@@ -139,10 +136,8 @@ TcpServerDestroy(TcpServer* Server)
   }
 
   free(Server->PollFds);
-  free(Server->Clients);
   free(Server->ClientsData);
   Server->PollFds = NULL;
-  Server->Clients = NULL;
   Server->ClientsData = NULL;
   Server->ClientCount = 0;
 }
@@ -221,7 +216,6 @@ TcpServerRun(TcpServer* Server)
 
         uint16_t Idx = Server->ClientCount;
 
-        Server->Clients[Idx].Fd = ClientFd;
         Server->ClientsData[Idx] = NULL;
         Server->PollFds[Idx + 1].fd = ClientFd;
         Server->PollFds[Idx + 1].events = POLLIN;
@@ -239,7 +233,7 @@ TcpServerRun(TcpServer* Server)
         continue;
       }
 
-      int32_t Fd = Server->Clients[i].Fd;
+      int32_t Fd = Server->PollFds[i + 1].fd;
       void* ClientData = Server->ClientsData[i];
 
       if (Rev & (POLLERR | POLLHUP | POLLNVAL)) {
