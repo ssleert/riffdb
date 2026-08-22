@@ -1,10 +1,10 @@
 #include "Log.h"
 #include "Options.h"
 #include "TcpServer.h"
+#include "ThreadPool.h"
+#include "Worker.h"
 
 #include <string.h>
-
-#include <aio.h>
 #include <unistd.h>
 
 #define PROGRAM_NAME "riffdb"
@@ -24,11 +24,15 @@ OnReadable(TcpServer* Server, int32_t ClientFd, void* ClientData)
 {
   (void)Server;
 
-  for (;;) {
-    ssize_t N = read(ClientFd, ClientData, 4096);
+  ssize_t N = read(ClientFd, ClientData, 4096);
 
-    if (N > 0) {
-      const char res[] = "HTTP/1.1 200 OK\n\
+  if (N == 0) {
+    return TcpServerErrorEmptyRead;
+  } else if (N < 0) {
+    return TcpServerErrorRead;
+  }
+
+  const char res[] = "HTTP/1.1 200 OK\n\
 Date: Sun, 16 Aug 2026 07:25:00 GMT\n\
 Server: ExampleServer/1.0\n\
 Content-Type: text/html\n\
@@ -40,14 +44,9 @@ Connection: keep-alive\n\
 <h1>Hello from HTTP/1.0</h1>\n\
 </body>\n\
 </html>\n";
+   write(ClientFd, res, (size_t)strlen(res)); // echo
 
-      write(ClientFd, res, (size_t)strlen(res)); // echo
-    } else if (N == 0) {
-      return TcpServerErrorEmptyRead;
-    } else {
-      return TcpServerErrorRead;
-    }
-  }
+   return 0;
 }
 
 static void
@@ -93,17 +92,25 @@ main(int32_t Argc, char* Argv[])
   LogInfo("Directory: %s", GOptions.Directory);
   LogInfo("Threads: %d", GOptions.Threads);
 
-  TcpServer Server;
+  TcpServer Server = {0};
+  ThreadPool Pool = {0};
 
-  if (TcpServerCreate(&Server, 8081, 4096) != 0) {
+  if (TcpServerCreate(&Server, GOptions.Port, 4096) != 0) {
     perror("Failed to create server");
+    return 1;
+  }
+
+  if (ThreadPoolStart(&Pool, GOptions.Threads, (int(*)(void*))WorkerHandler) != 0) {
+    LogErr("Failed to start thread pool");
     return 1;
   }
 
   TcpServerSetCallbacks(&Server, OnConnect, OnReadable, OnDisconnect, NULL);
 
-  printf("Listening on port 8080...\n");
+  LogInfo("Listening on port %d...", GOptions.Port);
   TcpServerRun(&Server);
+
+  ThreadPoolStop(&Pool);
 
   TcpServerDestroy(&Server);
 

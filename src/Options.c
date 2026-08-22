@@ -113,11 +113,11 @@ ParseOptions(int32_t Argc, char* Argv[])
       case 't': {
         char* End = NULL;
         long Val = strtol(optarg, &End, 10);
-        if (End == optarg || *End != '\0' || Val < 1 || Val > 65535) {
+        if (End == optarg || *End != '\0' || Val < 1 || Val > 255) {
           fprintf(stderr, "%s: invalid thread count '%s'\n", Argv[0], optarg);
           return -1;
         }
-        GOptions.Threads = (uint16_t)Val;
+        GOptions.Threads = (uint8_t)Val;
         break;
       }
       case 'h':

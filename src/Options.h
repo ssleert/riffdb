@@ -7,7 +7,7 @@
 typedef struct {
     uint16_t Port;
     char *Directory;
-    uint16_t Threads;
+    uint8_t Threads;
     bool ShowHelp;
     bool ShowVersion;
 } Options;
