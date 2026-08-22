@@ -11,8 +11,8 @@ typedef struct {
   cnd_t Cond;
 } Channel;
 
-Channel* ChannelNew(void);
-void ChannelFree(Channel* Self);
+int8_t ChannelInit(Channel* Self);
+void ChannelDestroy(Channel* Self);
 
 void ChannelSend(Channel* Self, void* Data);
 void* ChannelRecv(Channel* Self);

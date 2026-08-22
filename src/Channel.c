@@ -1,36 +1,27 @@
 #include "Channel.h"
 #include <stdlib.h>
 
-Channel*
-ChannelNew(void)
+int8_t
+ChannelInit(Channel* Self)
 {
-  Channel* Self = (Channel*)malloc(sizeof(Channel));
-  if (Self == NULL) {
-    return NULL;
-  }
-
   Self->Q = (Queue){ 0 };
   if (mtx_init(&Self->Mutex, mtx_plain) != thrd_success) {
     free(Self);
-    return NULL;
+    return -1;
   }
 
   if (cnd_init(&Self->Cond) != thrd_success) {
     mtx_destroy(&Self->Mutex);
     free(Self);
-    return NULL;
+    return -1;
   }
 
-  return Self;
+  return 0;
 }
 
 void
-ChannelFree(Channel* Self)
+ChannelDestroy(Channel* Self)
 {
-  if (Self == NULL) {
-    return;
-  }
-
   mtx_lock(&Self->Mutex);
 
   while (!QueueIsEmpty(&Self->Q)) {
@@ -43,7 +34,6 @@ ChannelFree(Channel* Self)
 
   cnd_destroy(&Self->Cond);
   mtx_destroy(&Self->Mutex);
-  free(Self);
 }
 
 void
