@@ -25,9 +25,7 @@ ChannelDestroy(Channel* Self)
   mtx_lock(&Self->Mutex);
 
   while (!QueueIsEmpty(&Self->Q)) {
-    QueueNode* Temp = Self->Q.Front;
-    Self->Q.Front = Self->Q.Front->Next;
-    free(Temp);
+    free(Dequeue(&Self->Q));
   }
 
   mtx_unlock(&Self->Mutex);

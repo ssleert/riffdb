@@ -2,34 +2,30 @@
 
 #include <stdlib.h>
 
-QueueNode*
-QueueNodeNew(void* Data)
-{
-  QueueNode* NewNode = (QueueNode*)malloc(sizeof(QueueNode));
-  if (!NewNode) {
-    return NULL;
-  }
-  NewNode->Data = Data;
-  NewNode->Next = NULL;
-  return NewNode;
-}
-
 int
 QueueIsEmpty(Queue* Self)
 {
-  return Self->Front == NULL;
+  return Self->Count == 0;
+}
+
+void*
+QueuePeek(Queue* Self)
+{
+  if (QueueIsEmpty(Self)) {
+    return NULL;
+  }
+  return Self->Items[Self->Head];
 }
 
 void
 Enqueue(Queue* Self, void* Data)
 {
-  QueueNode* NewNode = QueueNodeNew(Data);
-  if (Self->Rear == NULL) {
-    Self->Front = Self->Rear = NewNode;
+  if (Self->Count == QueueCapacity) {
     return;
   }
-  Self->Rear->Next = NewNode;
-  Self->Rear = NewNode;
+  Self->Items[Self->Tail] = Data;
+  Self->Tail = (Self->Tail + 1) % QueueCapacity;
+  Self->Count++;
 }
 
 void*
@@ -38,11 +34,15 @@ Dequeue(Queue* Self)
   if (QueueIsEmpty(Self)) {
     return NULL;
   }
-  QueueNode* Temp = Self->Front;
-  void* Data = Temp->Data;
-  Self->Front = Self->Front->Next;
-  if (Self->Front == NULL)
-    Self->Rear = NULL;
-  free(Temp);
+  void* Data = Self->Items[Self->Head];
+  Self->Items[Self->Head] = NULL;
+  Self->Head = (Self->Head + 1) % QueueCapacity;
+  Self->Count--;
   return Data;
+}
+
+uint16_t
+QueueCount(Queue* Self)
+{
+  return Self->Count;
 }

@@ -1,20 +1,23 @@
 #ifndef QUEUE_H
 #define QUEUE_H
 
-typedef struct QueueNode {
-    void* Data;
-    struct QueueNode* Next;
-} QueueNode;
+#include <stdint.h>
+
+enum {
+  QueueCapacity = 1024,
+};
 
 typedef struct {
-    QueueNode* Front;
-    QueueNode* Rear;
+    void* Items[QueueCapacity];
+    uint16_t Head;
+    uint16_t Tail;
+    uint16_t Count;
 } Queue;
 
-QueueNode* QueueNodeNew(void* Data);
-
-int QueueIsEmpty(Queue* Queue);
-void Enqueue(Queue* Queue, void* Data);
-void* Dequeue(Queue* Queue);
+int QueueIsEmpty(Queue* Self);
+void* QueuePeek(Queue* Self);
+void Enqueue(Queue* Self, void* Data);
+void* Dequeue(Queue* Self);
+uint16_t QueueCount(Queue* Self);
 
 #endif
