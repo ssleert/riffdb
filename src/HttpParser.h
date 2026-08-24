@@ -16,6 +16,7 @@ enum {
   HttpParserHeaderSize      = 24,
   HttpParserHeaderKeySize   = 64,
   HttpParserHeaderValueSize = 8192,
+  HttpParserBodySize        = 2048,
 };
 
 typedef enum {
@@ -24,6 +25,7 @@ typedef enum {
   HttpParserStateVersion,
   HttpParserStateHeaderKey,
   HttpParserStateHeaderValue,
+  HttpParserStateBody,
   HttpParserStateComplete,
 } HttpParserState;
 
@@ -47,11 +49,18 @@ typedef struct {
 
   uint8_t    HeadersLen;
   HttpHeader Headers[HttpParserHeaderSize];
+
+  char*      Body;
+  char*      BodyCap;
+  uint32_t   ConsumedBody;
+  uint32_t   ContentLength;
 } HttpParser;
 
 HttpParserError HttpParserInit(HttpParser* Self);
 HttpParserError HttpParserParse(HttpParser* Self, size_t Len, const char Text[Len]);
 
 void HttpParserFree(HttpParser* Self);
+
+uint32_t HttpParserSetContentLength(HttpParser* Parser);
 
 #endif

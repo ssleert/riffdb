@@ -1,5 +1,21 @@
 #include "HttpParser.h"
 #include <stdlib.h>
+#include <string.h>
+
+uint32_t
+HttpParserSetContentLength(HttpParser* Parser)
+{
+  for (uint16_t i = 0; i < Parser->HeadersLen; ++i) {
+    if (Parser->Headers[i].KeyLen == 14 &&
+        strncmp(Parser->Headers[i].Key, "Content-Length", 14) == 0) {
+      Parser->ContentLength =
+        (uint32_t)strtoul(Parser->Headers[i].Value, NULL, 10);
+      return Parser->ContentLength;
+    }
+  }
+
+  return 0;
+}
 
 HttpParserError
 HttpParserInit(HttpParser* Self)
@@ -11,6 +27,11 @@ HttpParserInit(HttpParser* Self)
     if (Self->Headers[i].Value == NULL) {
       return HttpParserErrorAlloc;
     }
+  }
+
+  Self->Body = malloc(HttpParserBodySize);
+  if (Self->Body == NULL) {
+    return HttpParserErrorAlloc;
   }
 
   return 0;
@@ -25,6 +46,9 @@ HttpParserParse(HttpParser* Self, size_t Len, const char Text[Len])
     Self->SawDoubleDot = false;
     Self->MethodLen = 0;
     Self->UrlLen = 0;
+    Self->ContentLength = 0;
+    Self->ConsumedBody = 0;
+    // checkpoint here
 
     for (uint32_t i = 0; i < Self->HeadersLen; ++i) {
       Self->Headers[i].KeyLen = 0;
@@ -103,8 +127,9 @@ HttpParserParse(HttpParser* Self, size_t Len, const char Text[Len])
         }
 
         if (Byte == '\n' && Self->SawCr) {
-          Self->State = HttpParserStateComplete;
-          return i;
+          Self->State = HttpParserStateBody;
+          HttpParserSetContentLength(Self);
+          break;
         }
 
         if (Self->HeadersLen > HttpParserHeaderSize) {
@@ -146,6 +171,8 @@ HttpParserParse(HttpParser* Self, size_t Len, const char Text[Len])
 
         Self->Headers[Self->HeadersLen].ValueLen++;
 
+        break;
+      case HttpParserStateBody:
         break;
       default:
         return HttpParserErrorIncorrectState;
