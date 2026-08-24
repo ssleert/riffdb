@@ -13,7 +13,7 @@ endif()
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
   set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
   add_compile_options(
-    -Ofast
+    -Os
     -fno-stack-protector
     -ffast-math 
     -march=native 
