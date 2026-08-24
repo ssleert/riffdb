@@ -2,12 +2,12 @@
 #include <stdlib.h>
 
 HttpParserError
-HttpParserNew(HttpParser* Self)
+HttpParserInit(HttpParser* Self)
 {
   *Self = (HttpParser){ 0 };
 
   for (size_t i = 0; i < HttpParserHeaderSize; ++i) {
-    Self->Headers[i].Value = HTTP_PARSER_MALLOC_FUNC(HttpParserHeaderValueSize);
+    Self->Headers[i].Value = malloc(HttpParserHeaderValueSize);
     if (Self->Headers[i].Value == NULL) {
       return HttpParserErrorAlloc;
     }
@@ -25,10 +25,16 @@ HttpParserParse(HttpParser* Self, size_t Len, const char Text[Len])
     Self->SawDoubleDot = false;
     Self->MethodLen = 0;
     Self->UrlLen = 0;
+
+    for (uint32_t i = 0; i < Self->HeadersLen; ++i) {
+      Self->Headers[i].KeyLen = 0;
+      Self->Headers[i].ValueLen = 0;
+    }
+
     Self->HeadersLen = 0;
   }
 
-  for (size_t i = 0; i < Len; ++Len) {
+  for (size_t i = 0; i < Len; ++i) {
     const char Byte = Text[i];
 
     switch (Self->State) {
@@ -84,6 +90,8 @@ HttpParserParse(HttpParser* Self, size_t Len, const char Text[Len])
         }
 
         if (Byte == ' ' && Self->SawDoubleDot) {
+          Self->Headers[Self->HeadersLen]
+            .Key[Self->Headers[Self->HeadersLen].KeyLen] = '\0';
           Self->State = HttpParserStateHeaderValue;
           Self->SawDoubleDot = false;
           break;
@@ -145,4 +153,12 @@ HttpParserParse(HttpParser* Self, size_t Len, const char Text[Len])
   }
 
   return 0;
+}
+
+void
+HttpParserFree(HttpParser* Self)
+{
+  for (size_t i = 0; i < HttpParserHeaderSize; ++i) {
+    free(Self->Headers[i].Value);
+  }
 }

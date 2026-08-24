@@ -5,10 +5,6 @@
 #include <stddef.h>
 #include <stdbool.h>
 
-#ifndef HTTP_PARSER_MALLOC_FUNC
-#define HTTP_PARSER_MALLOC_FUNC malloc
-#endif
-
 typedef enum {
   HttpParserErrorAlloc = -1,
   HttpParserErrorIncorrectState = -2,
@@ -53,7 +49,9 @@ typedef struct {
   HttpHeader Headers[HttpParserHeaderSize];
 } HttpParser;
 
-HttpParserError HttpParserNew(HttpParser* Self);
+HttpParserError HttpParserInit(HttpParser* Self);
 HttpParserError HttpParserParse(HttpParser* Self, size_t Len, const char Text[Len]);
+
+void HttpParserFree(HttpParser* Self);
 
 #endif

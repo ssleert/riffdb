@@ -1,3 +1,4 @@
+#include "HttpParser.h"
 #include "Log.h"
 #include "Options.h"
 #include "TcpServer.h"
@@ -10,21 +11,34 @@
 #define PROGRAM_NAME "riffdb"
 #define PROGRAM_VERSION "0.0.1"
 
+static ThreadPool GPool = { 0 };
+
 static void
 OnConnect(TcpServer* Server, int32_t ClientFd, void** ClientData)
 {
-  (void)Server;
   printf("Client connected: fd=%d\n", ClientFd);
 
-  *ClientData = calloc(4096, sizeof(uint8_t));
+  *ClientData = malloc(sizeof(Request));
+  if (*ClientData == NULL) {
+    LogFatal("allocation failure");
+  }
+
+  const size_t BufferSize = 4096;
+  *((Request*)(*ClientData)) = (Request){
+    .Buffer = calloc(BufferSize, sizeof(char)),
+    .BufferSize = BufferSize,
+    .ClientFd = ClientFd,
+  };
+
+  HttpParserInit(&((Request*)*ClientData)->State.Parser);
 }
 
 static int16_t
 OnReadable(TcpServer* Server, int32_t ClientFd, void* ClientData)
 {
-  (void)Server;
+  Request* Req = ClientData;
 
-  ssize_t N = read(ClientFd, ClientData, 4096);
+  ssize_t N = read(ClientFd, Req->Buffer, Req->BufferSize);
 
   if (N == 0) {
     return TcpServerErrorEmptyRead;
@@ -32,30 +46,23 @@ OnReadable(TcpServer* Server, int32_t ClientFd, void* ClientData)
     return TcpServerErrorRead;
   }
 
-  const char res[] = "HTTP/1.1 200 OK\n\
-Date: Sun, 16 Aug 2026 07:25:00 GMT\n\
-Server: ExampleServer/1.0\n\
-Content-Type: text/html\n\
-Content-Length: 59\n\
-Connection: keep-alive\n\
-\n\
-<html>\n\
-<body>\n\
-<h1>Hello from HTTP/1.0</h1>\n\
-</body>\n\
-</html>\n";
-   write(ClientFd, res, (size_t)strlen(res)); // echo
+  Req->BufferLen = N;
 
-   return 0;
+  ThreadPoolProcess(&GPool, Req);
+
+  return 0;
 }
 
 static void
 OnDisconnect(TcpServer* Server, int32_t ClientFd, void* ClientData)
 {
-  (void)Server;
   printf("Client disconnected: fd=%d\n", ClientFd);
 
-  free(ClientData);
+  Request* Req = ClientData;
+  HttpParserFree(&Req->State.Parser);
+  free(Req->Buffer);
+
+  Req->Cancel = true;
 }
 
 int
@@ -92,15 +99,15 @@ main(int32_t Argc, char* Argv[])
   LogInfo("Directory: %s", GOptions.Directory);
   LogInfo("Threads: %d", GOptions.Threads);
 
-  TcpServer Server = {0};
-  ThreadPool Pool = {0};
+  TcpServer Server = { 0 };
 
   if (TcpServerCreate(&Server, GOptions.Port, 4096) != 0) {
     perror("Failed to create server");
     return 1;
   }
 
-  if (ThreadPoolStart(&Pool, GOptions.Threads, (int(*)(void*))WorkerHandler) != 0) {
+  if (ThreadPoolStart(
+        &GPool, GOptions.Threads, (int (*)(void*))WorkerHandler) != 0) {
     LogErr("Failed to start thread pool");
     return 1;
   }
@@ -110,7 +117,7 @@ main(int32_t Argc, char* Argv[])
   LogInfo("Listening on port %d...", GOptions.Port);
   TcpServerRun(&Server);
 
-  ThreadPoolStop(&Pool);
+  ThreadPoolStop(&GPool);
 
   TcpServerDestroy(&Server);
 

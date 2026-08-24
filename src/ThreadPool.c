@@ -23,6 +23,7 @@ ThreadPoolStart(ThreadPool* Self, uint8_t WorkersAmount, int (*Worker)(void*))
     return -1;
   }
 
+  Self->Working = true;
   for (uint8_t i = 0; i < Self->WorkersSize; ++i) {
     ThreadPoolWorker* Arg = malloc(sizeof(ThreadPoolWorker));
     if (Arg == NULL) {
@@ -37,7 +38,6 @@ ThreadPoolStart(ThreadPool* Self, uint8_t WorkersAmount, int (*Worker)(void*))
     thrd_create(&Self->Workers[i], Worker, Arg);
   }
 
-  Self->Working = true;
   return 0;
 }
 

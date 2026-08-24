@@ -11,8 +11,11 @@ typedef struct {
   } State;
 
   char* Buffer;
-  char* BufferLen;
+  uint32_t BufferSize;
+  uint32_t BufferLen;
   int32_t ClientFd;
+
+  _Atomic(bool) Cancel;
 } Request;
 
 int32_t WorkerHandler(ThreadPoolWorker* Self);
