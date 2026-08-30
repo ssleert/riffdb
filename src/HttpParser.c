@@ -5,6 +5,9 @@
 uint32_t
 HttpParserSetContentLength(HttpParser* Parser)
 {
+  // TODO: add check for any method except POST or PUT
+  //       and return early
+
   for (uint16_t i = 0; i < Parser->HeadersLen; ++i) {
     if (Parser->Headers[i].KeyLen == 14 &&
         strncmp(Parser->Headers[i].Key, "Content-Length", 14) == 0) {
@@ -34,12 +37,18 @@ HttpParserInit(HttpParser* Self)
     return HttpParserErrorAlloc;
   }
 
+  Self->BodyCap = HttpParserBodySize;
+
   return 0;
 }
 
 HttpParserError
 HttpParserParse(HttpParser* Self, size_t Len, const char Text[Len])
 {
+  if (Self->State == HttpParserStateBody) {
+    return 0;
+  }
+
   if (Self->State == HttpParserStateComplete) {
     Self->State = HttpParserStateMethod;
     Self->SawCr = false;
@@ -48,7 +57,7 @@ HttpParserParse(HttpParser* Self, size_t Len, const char Text[Len])
     Self->UrlLen = 0;
     Self->ContentLength = 0;
     Self->ConsumedBody = 0;
-    // checkpoint here
+    Self->ContentLength = 0;
 
     for (uint32_t i = 0; i < Self->HeadersLen; ++i) {
       Self->Headers[i].KeyLen = 0;
@@ -127,9 +136,17 @@ HttpParserParse(HttpParser* Self, size_t Len, const char Text[Len])
         }
 
         if (Byte == '\n' && Self->SawCr) {
-          Self->State = HttpParserStateBody;
+          Self->SawCr = false;
+
           HttpParserSetContentLength(Self);
-          break;
+          if (Self->ContentLength == 0) {
+            Self->State = HttpParserStateComplete;
+            return 0;
+          }
+
+          Self->State = HttpParserStateBody;
+          Self->BodyStart = i+1;
+          return 0;
         }
 
         if (Self->HeadersLen > HttpParserHeaderSize) {
@@ -173,7 +190,7 @@ HttpParserParse(HttpParser* Self, size_t Len, const char Text[Len])
 
         break;
       case HttpParserStateBody:
-        break;
+        return 0;
       default:
         return HttpParserErrorIncorrectState;
     }
@@ -182,10 +199,43 @@ HttpParserParse(HttpParser* Self, size_t Len, const char Text[Len])
   return 0;
 }
 
+HttpParserError HttpParserParseBody(HttpParser* Self, size_t Len, const char Data[Len]) {
+  if (Self->State != HttpParserStateBody) {
+    return 0;
+  }
+
+  if (Self->ConsumedBody == 0) {
+    Data = &Data[Self->BodyStart];
+    Len -= Self->BodyStart;
+  }
+  
+  if (Self->BodyCap < Self->ContentLength) {
+    Self->Body = realloc(Self->Body, Self->ContentLength);
+    Self->BodyCap = Self->ContentLength;
+    if (Self->Body == NULL) {
+      return HttpParserErrorAlloc;
+    }
+  }
+
+  if (Data != NULL) {
+    memcpy(&Self->Body[Self->ConsumedBody], Data, Len);
+  }
+
+  Self->ConsumedBody += Len;
+
+  if (Self->ConsumedBody == Self->ContentLength) {
+    Self->State = HttpParserStateComplete;
+  }  
+
+  return 0; 
+}
+
 void
 HttpParserFree(HttpParser* Self)
 {
   for (size_t i = 0; i < HttpParserHeaderSize; ++i) {
     free(Self->Headers[i].Value);
   }
+
+  free(Self->Body);
 }

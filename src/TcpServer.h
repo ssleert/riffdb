@@ -27,7 +27,7 @@ typedef struct TcpServer {
   void**                  ClientsData;
   uint16_t                MaxClients;
   uint16_t                ClientCount;
-  bool                    Running;
+  _Atomic(bool)           Running;
   TcpServerOnConnect      OnConnect;
   TcpServerOnReadable     OnReadable;
   TcpServerOnDisconnect   OnDisconnect;

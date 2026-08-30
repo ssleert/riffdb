@@ -23,7 +23,7 @@ OnConnect(TcpServer* Server, int32_t ClientFd, void** ClientData)
     LogFatal("allocation failure");
   }
 
-  const size_t BufferSize = 4096;
+  const size_t BufferSize = 8192;
   *((Request*)(*ClientData)) = (Request){
     .Buffer = calloc(BufferSize, sizeof(char)),
     .BufferSize = BufferSize,

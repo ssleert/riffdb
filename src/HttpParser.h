@@ -51,13 +51,16 @@ typedef struct {
   HttpHeader Headers[HttpParserHeaderSize];
 
   char*      Body;
-  char*      BodyCap;
+  uint32_t   BodyStart;
+  uint32_t   BodyCap;
   uint32_t   ConsumedBody;
   uint32_t   ContentLength;
 } HttpParser;
 
 HttpParserError HttpParserInit(HttpParser* Self);
-HttpParserError HttpParserParse(HttpParser* Self, size_t Len, const char Text[Len]);
+HttpParserError HttpParserParse(HttpParser* Self, size_t Len, const char Data[Len]);
+
+HttpParserError HttpParserParseBody(HttpParser* Self, size_t Len, const char Data[Len]);
 
 void HttpParserFree(HttpParser* Self);
 
