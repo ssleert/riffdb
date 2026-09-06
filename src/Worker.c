@@ -1,6 +1,5 @@
 #include "Worker.h"
 #include "Channel.h"
-#include "HttpParser.h"
 #include "Log.h"
 
 #include <stddef.h>
@@ -17,25 +16,6 @@ WorkerHandler(ThreadPoolWorker* Self)
       free(Req);
       continue;
     }
-
-    HttpParserError rc = HttpParserParse(&Req->State.Parser, Req->BufferLen, Req->Buffer);
-    if (rc < 0) {
-      free(Req);
-      LogFatal("body parsing fucked up");
-    }
-
-    if (Req->State.Parser.State != HttpParserStateBody &&
-        Req->State.Parser.State != HttpParserStateComplete) {
-      continue;
-    }
-
-    rc = HttpParserParseBody(&Req->State.Parser, Req->BufferLen, Req->Buffer);
-    if (rc < 0) {
-      free(Req);
-      LogFatal("body parsing fucked up");
-    }
-
-    LogInfo("Body '%.*s'", Req->State.Parser.ContentLength, Req->State.Parser.Body);
 
     //         Self->Pool->CurrentWorker,
     //         Req->ClientFd,

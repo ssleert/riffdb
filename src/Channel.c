@@ -6,13 +6,11 @@ ChannelInit(Channel* Self)
 {
   Self->Q = (Queue){ 0 };
   if (mtx_init(&Self->Mutex, mtx_plain) != thrd_success) {
-    free(Self);
     return -1;
   }
 
   if (cnd_init(&Self->Cond) != thrd_success) {
     mtx_destroy(&Self->Mutex);
-    free(Self);
     return -1;
   }
 

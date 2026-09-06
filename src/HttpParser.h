@@ -58,8 +58,9 @@ typedef struct {
 } HttpParser;
 
 HttpParserError HttpParserInit(HttpParser* Self);
-HttpParserError HttpParserParse(HttpParser* Self, size_t Len, const char Data[Len]);
+HttpParserError HttpParserZero(HttpParser* Self);
 
+HttpParserError HttpParserParse(HttpParser* Self, size_t Len, const char Data[Len]);
 HttpParserError HttpParserParseBody(HttpParser* Self, size_t Len, const char Data[Len]);
 
 void HttpParserFree(HttpParser* Self);

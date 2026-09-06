@@ -16,17 +16,14 @@ static ThreadPool GPool = { 0 };
 static void
 OnConnect(TcpServer* Server, int32_t ClientFd, void** ClientData)
 {
-  printf("Client connected: fd=%d\n", ClientFd);
+  LogTrace("Client connected: fd=%d", ClientFd);
 
   *ClientData = malloc(sizeof(Request));
   if (*ClientData == NULL) {
     LogFatal("allocation failure");
   }
 
-  const size_t BufferSize = 8192;
   *((Request*)(*ClientData)) = (Request){
-    .Buffer = calloc(BufferSize, sizeof(char)),
-    .BufferSize = BufferSize,
     .ClientFd = ClientFd,
   };
 
@@ -38,7 +35,8 @@ OnReadable(TcpServer* Server, int32_t ClientFd, void* ClientData)
 {
   Request* Req = ClientData;
 
-  ssize_t N = read(ClientFd, Req->Buffer, Req->BufferSize);
+  char Buffer[8192];
+  ssize_t N = read(ClientFd, Buffer, sizeof(Buffer));
 
   if (N == 0) {
     return TcpServerErrorEmptyRead;
@@ -46,7 +44,22 @@ OnReadable(TcpServer* Server, int32_t ClientFd, void* ClientData)
     return TcpServerErrorRead;
   }
 
-  Req->BufferLen = N;
+  HttpParserError rc =
+    HttpParserParse(&Req->State.Parser, N, Buffer);
+  if (rc < 0) {
+    LogFatal("body parsing fucked up");
+  }
+
+  if (Req->State.Parser.State != HttpParserStateBody &&
+      Req->State.Parser.State != HttpParserStateComplete) {
+    return 0;
+  }
+
+  rc = HttpParserParseBody(&Req->State.Parser, N, Buffer);
+  if (rc < 0) {
+    free(Req);
+    LogFatal("body parsing fucked up");
+  }
 
   ThreadPoolProcess(&GPool, Req);
 
@@ -56,11 +69,10 @@ OnReadable(TcpServer* Server, int32_t ClientFd, void* ClientData)
 static void
 OnDisconnect(TcpServer* Server, int32_t ClientFd, void* ClientData)
 {
-  printf("Client disconnected: fd=%d\n", ClientFd);
+  LogTrace("Client disconnected: fd=%d", ClientFd);
 
   Request* Req = ClientData;
   HttpParserFree(&Req->State.Parser);
-  free(Req->Buffer);
 
   Req->Cancel = true;
 }
