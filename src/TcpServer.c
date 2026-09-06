@@ -1,7 +1,7 @@
 #include "TcpServer.h"
+#include "XMalloc.h"
 
 #include <errno.h>
-#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -59,12 +59,8 @@ TcpServerCreate(TcpServer* Server, uint16_t Port, uint16_t MaxClients)
     Server->MaxClients = MaxClients;
     Server->ListenFd = -1;
 
-    Server->PollFds = calloc((size_t)MaxClients + 1, sizeof(struct pollfd));
-    Server->ClientsData = calloc(MaxClients, sizeof(Server->ClientsData[0]));
-    if (!Server->PollFds || !Server->ClientsData) {
-      isError = true;
-      goto error;
-    }
+    Server->PollFds = XCalloc((size_t)MaxClients + 1, sizeof(struct pollfd));
+    Server->ClientsData = XCalloc(MaxClients, sizeof(Server->ClientsData[0]));
 
     ListenFd = socket(AF_INET, SOCK_STREAM, 0);
     if (ListenFd < 0) {
@@ -103,8 +99,8 @@ error:
     if (ListenFd > 0) {
       close(ListenFd);
     }
-    free(Server->PollFds);
-    free(Server->ClientsData);
+    XFree(Server->PollFds);
+    XFree(Server->ClientsData);
 
     return -1;
   }
@@ -135,8 +131,8 @@ TcpServerDestroy(TcpServer* Server)
     Server->ListenFd = -1;
   }
 
-  free(Server->PollFds);
-  free(Server->ClientsData);
+  XFree(Server->PollFds);
+  XFree(Server->ClientsData);
   Server->PollFds = NULL;
   Server->ClientsData = NULL;
   Server->ClientCount = 0;

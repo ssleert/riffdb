@@ -1,4 +1,6 @@
 #include "HttpParser.h"
+#include "XMalloc.h"
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -26,16 +28,10 @@ HttpParserInit(HttpParser* Self)
   *Self = (HttpParser){ 0 };
 
   for (size_t i = 0; i < HttpParserHeaderSize; ++i) {
-    Self->Headers[i].Value = malloc(HttpParserHeaderValueSize);
-    if (Self->Headers[i].Value == NULL) {
-      return HttpParserErrorAlloc;
-    }
+    Self->Headers[i].Value = XMalloc(HttpParserHeaderValueSize);
   }
 
-  Self->Body = malloc(HttpParserBodySize);
-  if (Self->Body == NULL) {
-    return HttpParserErrorAlloc;
-  }
+  Self->Body = XMalloc(HttpParserBodySize);
 
   Self->BodyCap = HttpParserBodySize;
 
@@ -220,11 +216,8 @@ HttpParserParseBody(HttpParser* Self, size_t Len, const char Data[Len])
   }
 
   if (Self->BodyCap < Self->ContentLength) {
-    Self->Body = realloc(Self->Body, Self->ContentLength);
+    Self->Body = XRealloc(Self->Body, Self->ContentLength);
     Self->BodyCap = Self->ContentLength;
-    if (Self->Body == NULL) {
-      return HttpParserErrorAlloc;
-    }
   }
 
   if (Data != NULL) {
@@ -244,8 +237,8 @@ void
 HttpParserFree(HttpParser* Self)
 {
   for (size_t i = 0; i < HttpParserHeaderSize; ++i) {
-    free(Self->Headers[i].Value);
+    XFree(Self->Headers[i].Value);
   }
 
-  free(Self->Body);
+  XFree(Self->Body);
 }

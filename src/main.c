@@ -1,9 +1,13 @@
 #include "HttpParser.h"
 #include "Log.h"
 #include "Options.h"
+#include "Request.h"
 #include "TcpServer.h"
 #include "ThreadPool.h"
 #include "Worker.h"
+#include "XMalloc.h"
+#include "Router.h"
+#include "sqlite3.h"
 
 #include <string.h>
 #include <unistd.h>
@@ -18,10 +22,7 @@ OnConnect(TcpServer* Server, int32_t ClientFd, void** ClientData)
 {
   LogTrace("Client connected: fd=%d", ClientFd);
 
-  *ClientData = malloc(sizeof(Request));
-  if (*ClientData == NULL) {
-    LogFatal("allocation failure");
-  }
+  *ClientData = XMalloc(sizeof(Request));
 
   *((Request*)(*ClientData)) = (Request){
     .ClientFd = ClientFd,
@@ -44,8 +45,7 @@ OnReadable(TcpServer* Server, int32_t ClientFd, void* ClientData)
     return TcpServerErrorRead;
   }
 
-  HttpParserError rc =
-    HttpParserParse(&Req->State.Parser, N, Buffer);
+  HttpParserError rc = HttpParserParse(&Req->State.Parser, N, Buffer);
   if (rc < 0) {
     LogFatal("body parsing fucked up");
   }
@@ -57,7 +57,7 @@ OnReadable(TcpServer* Server, int32_t ClientFd, void* ClientData)
 
   rc = HttpParserParseBody(&Req->State.Parser, N, Buffer);
   if (rc < 0) {
-    free(Req);
+    XFree(Req);
     LogFatal("body parsing fucked up");
   }
 
@@ -80,6 +80,8 @@ OnDisconnect(TcpServer* Server, int32_t ClientFd, void* ClientData)
 int
 main(int32_t Argc, char* Argv[])
 {
+  RouterInit();
+
   if (ParseOptions(Argc, Argv) != 0) {
     PrintUsage(PROGRAM_NAME);
     FreeOptions();
@@ -94,6 +96,7 @@ main(int32_t Argc, char* Argv[])
 
   if (GOptions.ShowVersion) {
     PrintVersion(PROGRAM_NAME, PROGRAM_VERSION);
+    PrintVersion("sqlite", sqlite3_version);
     FreeOptions();
     return EXIT_SUCCESS;
   }

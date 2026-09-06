@@ -1,5 +1,7 @@
 #include "ThreadPool.h"
-#include <stdlib.h>
+#include "XMalloc.h"
+
+#include <stdatomic.h>
 
 int8_t
 ThreadPoolStart(ThreadPool* Self, uint8_t WorkersAmount, int (*Worker)(void*))
@@ -9,26 +11,17 @@ ThreadPoolStart(ThreadPool* Self, uint8_t WorkersAmount, int (*Worker)(void*))
     .WorkersSize = WorkersAmount,
   };
 
-  Self->MailBoxes = calloc(Self->MailBoxesSize, sizeof(Channel));
-  if (Self->MailBoxes == NULL) {
-    return -1;
-  }
+  Self->MailBoxes = XCalloc(Self->MailBoxesSize, sizeof(Channel));
 
   for (uint8_t i = 0; i < Self->MailBoxesSize; ++i) {
     ChannelInit(&Self->MailBoxes[i]);
   }
 
-  Self->Workers = calloc(Self->WorkersSize, sizeof(thrd_t));
-  if (Self->Workers == NULL) {
-    return -1;
-  }
+  Self->Workers = XCalloc(Self->WorkersSize, sizeof(thrd_t));
 
   Self->Working = true;
   for (uint8_t i = 0; i < Self->WorkersSize; ++i) {
-    ThreadPoolWorker* Arg = malloc(sizeof(ThreadPoolWorker));
-    if (Arg == NULL) {
-      return -1;
-    }
+    ThreadPoolWorker* Arg = XMalloc(sizeof(ThreadPoolWorker));
 
     *Arg = (ThreadPoolWorker){
       .MailBox = &Self->MailBoxes[i],
@@ -60,12 +53,12 @@ ThreadPoolStop(ThreadPool* Self)
   for (uint8_t i = 0; i < Self->WorkersSize; ++i) {
     thrd_join(Self->Workers[i], NULL);
   }
-  free(Self->Workers);
+  XFree(Self->Workers);
 
   for (uint8_t i = 0; i < Self->MailBoxesSize; ++i) {
     ChannelDestroy(&Self->MailBoxes[i]);
   }
-  free(Self->MailBoxes);
+  XFree(Self->MailBoxes);
 
   *Self = (ThreadPool){ 0 };
 }

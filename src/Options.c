@@ -1,4 +1,5 @@
 #include "Options.h"
+#include "XMalloc.h"
 
 #include <getopt.h>
 #include <stdio.h>
@@ -11,16 +12,12 @@
 Options GOptions;
 
 static char*
-strdup(const char* str)
+XStrdup(const char* Str)
 {
-  size_t siz;
-  char* copy;
-
-  siz = strlen(str) + 1;
-  if ((copy = malloc(siz)) == NULL)
-    return (NULL);
-  (void)memcpy(copy, str, siz);
-  return (copy);
+  size_t Len = strlen(Str) + 1;
+  char* Copy = XMalloc(Len);
+  (void)memcpy(Copy, Str, Len);
+  return Copy;
 }
 
 static uint16_t
@@ -58,17 +55,17 @@ PrintVersion(const char* ProgramName, const char* Version)
 void
 FreeOptions(void)
 {
-  free(GOptions.Directory);
+  XFree(GOptions.Directory);
   GOptions.Directory = NULL;
 }
 
 int
 ParseOptions(int32_t Argc, char* Argv[])
 {
-  free(GOptions.Directory);
+  XFree(GOptions.Directory);
 
   GOptions.Port = DEFAULT_PORT;
-  GOptions.Directory = strdup(".");
+  GOptions.Directory = XStrdup(".");
   GOptions.Threads = GetDefaultThreads();
   GOptions.ShowHelp = 0;
   GOptions.ShowVersion = 0;
@@ -103,10 +100,8 @@ ParseOptions(int32_t Argc, char* Argv[])
         break;
       }
       case 'd': {
-        char* Copy = strdup(optarg);
-        if (Copy == NULL)
-          return -1;
-        free(GOptions.Directory);
+        char* Copy = XStrdup(optarg);
+        XFree(GOptions.Directory);
         GOptions.Directory = Copy;
         break;
       }

@@ -32,6 +32,8 @@ else()
   add_link_options(-fsanitize=address,undefined -g3)
 endif()
 
+include_directories(./sqlite)
+
 add_compile_options(
   -Wno-nan-infinity-disabled
   -Wall -Wextra -Wpedantic
@@ -44,4 +46,4 @@ add_compile_options(
 
 file(GLOB_RECURSE SOURCES src/*.c)
 
-add_executable(${CMAKE_PROJECT_NAME} ${SOURCES})
+add_executable(${CMAKE_PROJECT_NAME} ${SOURCES} sqlite/sqlite3.c)
