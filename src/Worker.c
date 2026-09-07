@@ -1,24 +1,28 @@
 #include "Worker.h"
 #include "Channel.h"
+#include "HttpResponse.h"
 #include "Log.h"
 #include "Request.h"
 #include "Router.h"
 
 #include <stddef.h>
 #include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
 
 int32_t
 WorkerHandler(ThreadPoolWorker* Self)
 {
   while (Self->Pool->Working) {
-    const Request* Req = ChannelRecv(Self->MailBox);
+    Request* Req = ChannelRecv(Self->MailBox);
     if (Req->Cancel) {
+      LogWarn("Request Canceled");
       continue;
     }
-    
+
     RouterRoute(Req);
+
+    write(Req->ClientFd, Req->State.Response.Buf, Req->State.Response.Len);
+    HttpResponseZero(&Req->State.Response);
   }
 
   free(Self);

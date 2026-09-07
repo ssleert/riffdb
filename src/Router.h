@@ -4,6 +4,6 @@
 #include "Request.h"
 
 void RouterInit(void);
-int RouterRoute(const Request* Req);
+void RouterRoute(Request* Req);
 
 #endif

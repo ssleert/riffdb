@@ -1,12 +1,13 @@
 #include "HttpParser.h"
+#include "HttpResponse.h"
 #include "Log.h"
 #include "Options.h"
 #include "Request.h"
+#include "Router.h"
 #include "TcpServer.h"
 #include "ThreadPool.h"
 #include "Worker.h"
 #include "XMalloc.h"
-#include "Router.h"
 #include "sqlite3.h"
 
 #include <string.h>
@@ -29,6 +30,7 @@ OnConnect(TcpServer* Server, int32_t ClientFd, void** ClientData)
   };
 
   HttpParserInit(&((Request*)*ClientData)->State.Parser);
+  HttpResponseInit(&((Request*)*ClientData)->State.Response);
 }
 
 static int16_t
@@ -47,7 +49,7 @@ OnReadable(TcpServer* Server, int32_t ClientFd, void* ClientData)
 
   HttpParserError rc = HttpParserParse(&Req->State.Parser, N, Buffer);
   if (rc < 0) {
-    LogFatal("body parsing fucked up");
+    LogErr("body parsing fucked up %d", rc);
   }
 
   if (Req->State.Parser.State != HttpParserStateBody &&
@@ -58,7 +60,7 @@ OnReadable(TcpServer* Server, int32_t ClientFd, void* ClientData)
   rc = HttpParserParseBody(&Req->State.Parser, N, Buffer);
   if (rc < 0) {
     XFree(Req);
-    LogFatal("body parsing fucked up");
+    LogErr("body parsing fucked up %d", rc);
   }
 
   ThreadPoolProcess(&GPool, Req);
@@ -73,6 +75,7 @@ OnDisconnect(TcpServer* Server, int32_t ClientFd, void* ClientData)
 
   Request* Req = ClientData;
   HttpParserFree(&Req->State.Parser);
+  HttpResponseFree(&Req->State.Response);
 
   Req->Cancel = true;
 }
