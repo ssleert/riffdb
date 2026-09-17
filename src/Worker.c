@@ -5,9 +5,10 @@
 #include "Request.h"
 #include "Router.h"
 
+#include <errno.h>
 #include <stddef.h>
 #include <stdlib.h>
-#include <unistd.h>
+#include <sys/socket.h>
 
 int32_t
 WorkerHandler(ThreadPoolWorker* Self)
@@ -21,7 +22,13 @@ WorkerHandler(ThreadPoolWorker* Self)
 
     RouterRoute(Req);
 
-    write(Req->ClientFd, Req->State.Response.Buf, Req->State.Response.Len);
+    int Rc = send(Req->ClientFd,
+                  Req->State.Response.Buf,
+                  Req->State.Response.Len,
+                  MSG_NOSIGNAL);
+    if (Rc < 0) {
+      LogWarn("Cant send data to client: Rc = %d, errno = %d", Rc, errno);
+    }
     HttpResponseZero(&Req->State.Response);
   }
 

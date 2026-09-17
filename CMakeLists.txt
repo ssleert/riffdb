@@ -30,9 +30,14 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
 else()
   add_compile_options(-fsanitize=address,undefined -g3)
   add_link_options(-fsanitize=address,undefined -g3)
+
+  add_definitions(
+    -DSQLITE_DEBUG -DTRACE -DDEBUG
+  )
 endif()
 
 include_directories(./sqlite)
+include_directories(./src)
 
 add_compile_options(
   -Wno-nan-infinity-disabled

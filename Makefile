@@ -5,7 +5,7 @@ build:
 	cmake --build ./build --parallel
 
 format:
-	clang-format --style=Mozilla -i ./src/**/*.c
+	clang-format --style=Mozilla -i `find ./src | grep '\.c'`
 
 clean:
 	rm -rf ./build

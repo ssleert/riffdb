@@ -1,3 +1,5 @@
+#include "main.h"
+#include "DataBase.h"
 #include "HttpParser.h"
 #include "HttpResponse.h"
 #include "Log.h"
@@ -12,9 +14,6 @@
 
 #include <string.h>
 #include <unistd.h>
-
-#define PROGRAM_NAME "riffdb"
-#define PROGRAM_VERSION "0.0.1"
 
 static ThreadPool GPool = { 0 };
 
@@ -104,6 +103,14 @@ main(int32_t Argc, char* Argv[])
     return EXIT_SUCCESS;
   }
 
+  LogInfo(PROGRAM_NAME " " PROGRAM_VERSION);
+  LogInfo("Port: %d", GOptions.Port);
+  LogInfo("Directory: %s", GOptions.Directory);
+  LogInfo("Threads: %d", GOptions.Threads);
+
+  if (DataBaseCreateIfNotExists(GOptions.Directory)) {
+    return 1;
+  }
   if (strcmp(GOptions.Directory, ".") != 0) {
     if (chdir(GOptions.Directory) != 0) {
       perror("chdir");
@@ -111,11 +118,6 @@ main(int32_t Argc, char* Argv[])
       return EXIT_FAILURE;
     }
   }
-
-  LogInfo(PROGRAM_NAME " " PROGRAM_VERSION);
-  LogInfo("Port: %d", GOptions.Port);
-  LogInfo("Directory: %s", GOptions.Directory);
-  LogInfo("Threads: %d", GOptions.Threads);
 
   TcpServer Server = { 0 };
 

@@ -1,24 +1,15 @@
 #include "Options.h"
+#include "Utils.h"
 #include "XMalloc.h"
 
 #include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
 
 #define DEFAULT_PORT 9889
 
 Options GOptions;
-
-static char*
-XStrdup(const char* Str)
-{
-  size_t Len = strlen(Str) + 1;
-  char* Copy = XMalloc(Len);
-  (void)memcpy(Copy, Str, Len);
-  return Copy;
-}
 
 static uint16_t
 GetDefaultThreads(void)
