@@ -37,6 +37,7 @@ else()
 endif()
 
 include_directories(./sqlite)
+include_directories(./yyjson)
 include_directories(./src)
 
 add_compile_options(
@@ -51,4 +52,7 @@ add_compile_options(
 
 file(GLOB_RECURSE SOURCES src/*.c)
 
-add_executable(${CMAKE_PROJECT_NAME} ${SOURCES} sqlite/sqlite3.c)
+add_executable(${CMAKE_PROJECT_NAME} ${SOURCES} 
+  yyjson/yyjson.c 
+  sqlite/sqlite3.c
+)

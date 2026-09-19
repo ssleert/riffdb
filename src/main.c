@@ -10,7 +10,8 @@
 #include "ThreadPool.h"
 #include "Worker.h"
 #include "XMalloc.h"
-#include "sqlite3.h"
+
+#include <sqlite3.h>
 
 #include <string.h>
 #include <unistd.h>
