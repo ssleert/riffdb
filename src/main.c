@@ -1,5 +1,6 @@
 #include "main.h"
 #include "DataBase.h"
+#include "Greeting.h"
 #include "HttpParser.h"
 #include "HttpResponse.h"
 #include "Log.h"
@@ -104,6 +105,7 @@ main(int32_t Argc, char* Argv[])
     return EXIT_SUCCESS;
   }
 
+  Greeting();
   LogInfo(PROGRAM_NAME " " PROGRAM_VERSION);
   LogInfo("Port: %d", GOptions.Port);
   LogInfo("Directory: %s", GOptions.Directory);

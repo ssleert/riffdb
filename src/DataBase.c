@@ -1,6 +1,7 @@
 #include "DataBase.h"
 #include "Log.h"
 #include "Utils.h"
+#include "XMalloc.h"
 
 #include "sqlite3.h"
 #include "stddef.h"
@@ -20,16 +21,17 @@ DataBaseCreateIfNotExists(const char Dir[])
   sqlite3* Db = NULL;
   char* Err = NULL;
 
-  char* DataBaseFile = malloc(strlen(Dir) + sizeof("/riff.db"));
+  char* DataBaseFile = XMalloc(strlen(Dir) + sizeof("/riff.db"));
   sprintf(DataBaseFile, "%s/riff.db", Dir);
 
   Rc = sqlite3_open_v2(
     DataBaseFile, &Db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, NULL);
 
-  free(DataBaseFile);
+  XFree(DataBaseFile);
 
   if (Rc != SQLITE_OK) {
     LogErr("Cant open sqlite3 file on %s/riff.db", Dir);
+    sqlite3_free(Db);
     return -1;
   }
 
@@ -52,17 +54,19 @@ DataBaseCreateIfNotExists(const char Dir[])
   return 0;
 }
 
-int32_t DataBaseBindJsonArgsToStmt(const yyjson_val* Args, sqlite3_stmt* Stmt) { 
+int32_t
+DataBaseBindJsonArgsToStmt(const yyjson_val* Args, sqlite3_stmt* Stmt)
+{
   yyjson_val* Element;
   yyjson_arr_iter ArgsIter = yyjson_arr_iter_with(Args);
 
   while ((Element = yyjson_arr_iter_next(&ArgsIter))) {
-    int32_t Idx = ArgsIter.idx-1;
+    int32_t Idx = ArgsIter.idx;
     if (yyjson_is_str(Element)) {
-      const char *Str = yyjson_get_str(Element);
-      size_t Len      = yyjson_get_len(Element);
+      const char* Str = yyjson_get_str(Element);
+      size_t Len = yyjson_get_len(Element);
 
-      sqlite3_bind_text(Stmt, Idx, Str, Len - 1, NULL);
+      sqlite3_bind_text(Stmt, Idx, Str, Len, NULL);
       continue;
     }
 
@@ -94,4 +98,30 @@ int32_t DataBaseBindJsonArgsToStmt(const yyjson_val* Args, sqlite3_stmt* Stmt) {
   }
 
   return 0;
+}
+
+sqlite3*
+DataBaseOpen(const char Dir[], bool ReadOnly)
+{
+  sqlite3* Db;
+
+  char* DataBaseFile = XMalloc(strlen(Dir) + sizeof("/riff.db"));
+  sprintf(DataBaseFile, "%s/riff.db", Dir);
+
+  int32_t Flags = SQLITE_OPEN_CREATE;
+  if (ReadOnly) {
+    Flags = Flags | SQLITE_OPEN_READONLY;
+  } else {
+    Flags = Flags | SQLITE_OPEN_READWRITE;
+  }
+
+  int32_t Rc = sqlite3_open_v2(DataBaseFile, &Db, Flags, NULL);
+  XFree(DataBaseFile);
+
+  if (Rc != 0) {
+    LogErr("cant open sqlite connection for worker");
+    return NULL;
+  }
+
+  return Db;
 }

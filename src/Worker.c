@@ -1,24 +1,34 @@
 #include "Worker.h"
 #include "Channel.h"
+#include "DataBase.h"
 #include "HttpResponse.h"
 #include "Log.h"
+#include "Options.h"
 #include "Request.h"
 #include "Router.h"
+#include "XMalloc.h"
 
 #include <errno.h>
 #include <stddef.h>
-#include <stdlib.h>
 #include <sys/socket.h>
 
 int32_t
 WorkerHandler(ThreadPoolWorker* Self)
 {
+  sqlite3* Db = DataBaseOpen(GOptions.Directory, false);
+  if (Db == NULL) {
+    Self->Pool->Working = false;
+    return 0;
+  }
+
   while (Self->Pool->Working) {
     Request* Req = ChannelRecv(Self->MailBox);
     if (Req->Cancel) {
       LogWarn("Request Canceled");
       continue;
     }
+
+    Req->Worker.Db = Db;
 
     RouterRoute(Req);
 
@@ -32,6 +42,7 @@ WorkerHandler(ThreadPoolWorker* Self)
     HttpResponseZero(&Req->State.Response);
   }
 
-  free(Self);
+  sqlite3_close_v2(Db);
+  XFree(Self);
   return 0;
 }
