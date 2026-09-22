@@ -11,12 +11,12 @@ typedef enum {
 } HttpParserError;
 
 enum {
-  HttpParserMethodSize      = 9,
-  HttpParserUrlSize         = 65,
-  HttpParserHeaderSize      = 25,
-  HttpParserHeaderKeySize   = 65,
-  HttpParserHeaderValueSize = 8193,
-  HttpParserBodySize        = 2049,
+  HttpParserMethodSize      = 8,
+  HttpParserUrlSize         = 64,
+  HttpParserHeaderSize      = 24,
+  HttpParserHeaderKeySize   = 64,
+  HttpParserHeaderValueSize = 8192,
+  HttpParserBodySize        = 2048,
 };
 
 typedef enum {
