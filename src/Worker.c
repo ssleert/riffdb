@@ -6,10 +6,13 @@
 #include "Options.h"
 #include "Request.h"
 #include "Router.h"
+#include "ThreadPool.h"
 #include "XMalloc.h"
+#include "sqlite3.h"
 
 #include <errno.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <sys/socket.h>
 
 int32_t

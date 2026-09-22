@@ -49,6 +49,9 @@ add_compile_options(
   -Wno-format-nonliteral
   -Wjump-misses-init -Wlogical-op
 )
+add_definitions(
+  -D_POSIX_C_SOURCE=200809L
+)
 
 file(GLOB_RECURSE SOURCES src/*.c)
 

@@ -2,6 +2,7 @@
 
 #include <assert.h>
 #include <stdarg.h>
+#include <stdio.h>
 #include <string.h>
 #include <time.h>
 
@@ -25,12 +26,25 @@ static const char* LogVerbosityStringsColored[] = {
   "[\033[0;31mERROR\033[1;0m]", "[\033[0;31mFATAL\033[1;0m]",
 };
 
-static inline struct tm*
-LogCurrentTime(void)
+#ifdef _WIN32
+
+static inline int
+LogCurrentTime(struct tm* result)
 {
   time_t t = time(NULL);
-  return localtime(&t);
+  return localtime_s(result, &t);
 }
+
+#else
+
+static inline int
+LogCurrentTime(struct tm* result)
+{
+  time_t t = time(NULL);
+  return localtime_r(&t, result) == NULL;
+}
+
+#endif
 
 void
 LogFlog(LOG_VERBOSITY Verbosity,
@@ -40,11 +54,11 @@ LogFlog(LOG_VERBOSITY Verbosity,
         const char Fmt[],
         ...)
 {
-  assert(Verbosity >= 0 && Verbosity <= LOG_VERBOSITY_LEN);
+  assert(Verbosity >= 0 && Verbosity <= (LOG_VERBOSITY)LOG_VERBOSITY_LEN);
   assert(Stream != NULL);
   assert(Filename != NULL);
   assert(Fmt != NULL);
-  assert(strlen(Fmt) < __LOG_H_BUFSIZE);
+  assert(strlen(Fmt) < LOG_H_BUFSIZE);
 
   if (LogMaxVerbosity == LOG_VERBOSITY_None ||
       Verbosity == LOG_VERBOSITY_None) {
@@ -55,31 +69,34 @@ LogFlog(LOG_VERBOSITY Verbosity,
   }
 
   char TimeBuffer[64];
-  char StringBuffer[__LOG_H_BUFSIZE + 256];
+  char StringBuffer[LOG_H_BUFSIZE + 256];
   char* StringPointer = StringBuffer;
   bool LocalLogColored =
-    (Stream == stdout || Stream == stderr) ? LogColored : false;
+    ((Stream == stdout || Stream == stderr) ? (int)LogColored : false) != 0;
+
+  struct tm tm_buf;
+  LogCurrentTime(&tm_buf);
 
   strftime(TimeBuffer,
            sizeof(TimeBuffer),
-           (LogAddDate) ? "%Y-%m-%d %H:%M:%S" : "%H:%M:%S",
-           LogCurrentTime());
+           (int)LogAddDate ? "%Y-%m-%d %H:%M:%S" : "%H:%M:%S",
+           &tm_buf);
 
   StringPointer +=
     sprintf(StringPointer,
             "%s %s %s:%zu: ",
             TimeBuffer,
-            (LocalLogColored) ? LogVerbosityStringsColored[Verbosity]
-                              : LogVerbosityStrings[Verbosity],
+            (int)LocalLogColored ? LogVerbosityStringsColored[Verbosity]
+                                 : LogVerbosityStrings[Verbosity],
             Filename,
             Line);
 
   va_list Args;
   va_start(Args, Fmt);
-  size_t w = vsnprintf(StringPointer, __LOG_H_BUFSIZE - 1, Fmt, Args);
+  size_t w = vsnprintf(StringPointer, LOG_H_BUFSIZE - 1, Fmt, Args);
   va_end(Args);
 
-  StringPointer += (w >= __LOG_H_BUFSIZE) ? __LOG_H_BUFSIZE - 1 : w;
+  StringPointer += (w >= LOG_H_BUFSIZE) ? LOG_H_BUFSIZE - 1 : w;
 
   if (LogAddNewLine) {
     StringPointer[0] = '\n';
@@ -87,5 +104,4 @@ LogFlog(LOG_VERBOSITY Verbosity,
   }
 
   fputs(StringBuffer, Stream);
-  return;
 }

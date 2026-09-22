@@ -1,12 +1,15 @@
-#ifndef _LOG_H_
-#define _LOG_H_
+#ifndef LOG_H_
+#define LOG_H_
 
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
-#define __LOG_H_BUFSIZE 4096
+enum {
+LOG_H_BUFSIZE = 4096
+};
 
 typedef enum {
     LOG_VERBOSITY_None,
@@ -16,7 +19,9 @@ typedef enum {
     LOG_VERBOSITY_Error,
     LOG_VERBOSITY_Fatal,
 } LOG_VERBOSITY;
-#define LOG_VERBOSITY_LEN 5
+enum {
+LOG_VERBOSITY_LEN = 5
+};
 
 extern LOG_VERBOSITY LogMaxVerbosity;
 extern bool LogColored;

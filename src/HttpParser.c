@@ -1,13 +1,14 @@
 #include "HttpParser.h"
 #include "XMalloc.h"
 
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
 uint32_t
 HttpParserSetContentLength(HttpParser* Parser)
 {
-  // TODO: add check for any method except POST or PUT
+  // TODO: ssleert - add check for any method except POST or PUT
   //       and return early
 
   for (uint16_t i = 0; i < Parser->HeadersLen; ++i) {
@@ -61,10 +62,10 @@ HttpParserZero(HttpParser* Self)
 }
 
 HttpParserError
-HttpParserParse(HttpParser* Self, size_t Len, const char Text[Len])
+HttpParserParse(HttpParser* Self, size_t Len, const char Data[Len])
 {
   if (Self->State == HttpParserStateBody) {
-    return 0;
+    return (HttpParserError)0;
   }
 
   if (Self->State == HttpParserStateComplete) {
@@ -72,7 +73,7 @@ HttpParserParse(HttpParser* Self, size_t Len, const char Text[Len])
   }
 
   for (size_t i = 0; i < Len; ++i) {
-    const char Byte = Text[i];
+    const char Byte = Data[i];
 
     switch (Self->State) {
       case HttpParserStateMethod:
@@ -82,7 +83,7 @@ HttpParserParse(HttpParser* Self, size_t Len, const char Text[Len])
           break;
         }
 
-        if (Self->MethodLen >= HttpParserMethodSize) {
+        if (Self->MethodLen >= HttpParserMethodSize - 1) {
           break;
         }
 
@@ -97,7 +98,7 @@ HttpParserParse(HttpParser* Self, size_t Len, const char Text[Len])
           break;
         }
 
-        if (Self->UrlLen >= HttpParserUrlSize) {
+        if (Self->UrlLen >= HttpParserUrlSize - 1) {
           break;
         }
 
@@ -153,11 +154,12 @@ HttpParserParse(HttpParser* Self, size_t Len, const char Text[Len])
           return 0;
         }
 
-        if (Self->HeadersLen > HttpParserHeaderSize) {
+        if (Self->HeadersLen >= HttpParserHeaderSize - 1) {
           break;
         }
 
-        if (Self->Headers[Self->HeadersLen].KeyLen >= HttpParserHeaderKeySize) {
+        if (Self->Headers[Self->HeadersLen].KeyLen >=
+            HttpParserHeaderKeySize - 1) {
           break;
         }
 
@@ -183,7 +185,7 @@ HttpParserParse(HttpParser* Self, size_t Len, const char Text[Len])
         }
 
         if (Self->Headers[Self->HeadersLen].ValueLen >=
-            HttpParserHeaderValueSize) {
+            HttpParserHeaderValueSize - 1) {
           break;
         }
 

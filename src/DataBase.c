@@ -8,6 +8,7 @@
 #include "stdio.h"
 #include "string.h"
 #include "yyjson.h"
+#include <stdint.h>
 
 int32_t
 DataBaseCreateIfNotExists(const char Dir[])
@@ -57,7 +58,7 @@ DataBaseCreateIfNotExists(const char Dir[])
 int32_t
 DataBaseBindJsonArgsToStmt(const yyjson_val* Args, sqlite3_stmt* Stmt)
 {
-  yyjson_val* Element;
+  yyjson_val* Element = NULL;
   yyjson_arr_iter ArgsIter = yyjson_arr_iter_with(Args);
 
   while ((Element = yyjson_arr_iter_next(&ArgsIter))) {
@@ -103,7 +104,7 @@ DataBaseBindJsonArgsToStmt(const yyjson_val* Args, sqlite3_stmt* Stmt)
 sqlite3*
 DataBaseOpen(const char Dir[], bool ReadOnly)
 {
-  sqlite3* Db;
+  sqlite3* Db = NULL;
 
   char* DataBaseFile = XMalloc(strlen(Dir) + sizeof("/riff.db"));
   sprintf(DataBaseFile, "%s/riff.db", Dir);

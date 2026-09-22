@@ -1,8 +1,8 @@
 #ifndef OPTIONS_H
 #define OPTIONS_H
 
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 typedef struct {
     uint16_t Port;

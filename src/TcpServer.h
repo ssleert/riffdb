@@ -1,10 +1,10 @@
 #ifndef TCPSERVER_H
 #define TCPSERVER_H
 
-#include <stdint.h>
-#include <stddef.h>
-#include <stdbool.h>
 #include <poll.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 
 typedef enum TcpServerError {
   TcpServerErrorEmptyRead = -1,

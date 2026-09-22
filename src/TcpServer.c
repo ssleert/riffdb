@@ -2,10 +2,11 @@
 #include "XMalloc.h"
 
 #include <errno.h>
+#include <stdint.h>
 #include <string.h>
+#include <sys/poll.h>
 #include <unistd.h>
 
-#include <arpa/inet.h>
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <poll.h>
@@ -60,7 +61,8 @@ TcpServerCreate(TcpServer* Server, uint16_t Port, uint16_t MaxClients)
     Server->ListenFd = -1;
 
     Server->PollFds = XCalloc((size_t)MaxClients + 1, sizeof(struct pollfd));
-    Server->ClientsData = XCalloc(MaxClients, sizeof(Server->ClientsData[0]));
+    Server->ClientsData =
+      (void**)XCalloc(MaxClients, sizeof(Server->ClientsData[0]));
 
     ListenFd = socket(AF_INET, SOCK_STREAM, 0);
     if (ListenFd < 0) {
@@ -100,7 +102,7 @@ error:
       close(ListenFd);
     }
     XFree(Server->PollFds);
-    XFree(Server->ClientsData);
+    XFree((void*)Server->ClientsData);
 
     return -1;
   }
@@ -132,7 +134,7 @@ TcpServerDestroy(TcpServer* Server)
   }
 
   XFree(Server->PollFds);
-  XFree(Server->ClientsData);
+  XFree((void*)Server->ClientsData);
   Server->PollFds = NULL;
   Server->ClientsData = NULL;
   Server->ClientCount = 0;
@@ -243,7 +245,8 @@ TcpServerRun(TcpServer* Server)
           if (rc == TcpServerErrorEmptyRead) {
             RemoveClient(Server, i);
             break;
-          } else if (rc == TcpServerErrorRead) {
+          }
+          if (rc == TcpServerErrorRead) {
             if (errno == EAGAIN || errno == EWOULDBLOCK) {
               break;
             }

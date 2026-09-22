@@ -1,5 +1,8 @@
 #include "Channel.h"
+#include "Queue.h"
+#include <stdint.h>
 #include <stdlib.h>
+#include <threads.h>
 
 int8_t
 ChannelInit(Channel* Self)

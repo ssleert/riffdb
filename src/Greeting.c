@@ -1,7 +1,7 @@
 #include "Greeting.h"
-#include "Log.h"
 
 #include "stddef.h"
+#include <stdio.h>
 
 void
 Greeting(void)

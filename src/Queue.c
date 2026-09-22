@@ -1,5 +1,6 @@
 #include "Queue.h"
 
+#include <stdint.h>
 #include <stdlib.h>
 
 int

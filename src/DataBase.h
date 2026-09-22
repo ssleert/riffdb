@@ -1,11 +1,11 @@
 #ifndef DATABASE_H
 #define DATABASE_H
 
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 
-#include <yyjson.h>
 #include <sqlite3.h>
+#include <yyjson.h>
 
 int32_t DataBaseCreateIfNotExists(const char Dir[]);
 

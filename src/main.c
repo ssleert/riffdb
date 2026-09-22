@@ -14,6 +14,9 @@
 
 #include <sqlite3.h>
 
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -22,6 +25,8 @@ static ThreadPool GPool = { 0 };
 static void
 OnConnect(TcpServer* Server, int32_t ClientFd, void** ClientData)
 {
+  (void)Server;
+
   LogTrace("Client connected: fd=%d", ClientFd);
 
   *ClientData = XMalloc(sizeof(Request));
@@ -37,6 +42,8 @@ OnConnect(TcpServer* Server, int32_t ClientFd, void** ClientData)
 static int16_t
 OnReadable(TcpServer* Server, int32_t ClientFd, void* ClientData)
 {
+  (void)Server;
+
   Request* Req = ClientData;
 
   char Buffer[8192];
@@ -44,7 +51,8 @@ OnReadable(TcpServer* Server, int32_t ClientFd, void* ClientData)
 
   if (N == 0) {
     return TcpServerErrorEmptyRead;
-  } else if (N < 0) {
+  }
+  if (N < 0) {
     return TcpServerErrorRead;
   }
 
@@ -72,6 +80,8 @@ OnReadable(TcpServer* Server, int32_t ClientFd, void* ClientData)
 static void
 OnDisconnect(TcpServer* Server, int32_t ClientFd, void* ClientData)
 {
+  (void)Server;
+
   LogTrace("Client disconnected: fd=%d", ClientFd);
 
   Request* Req = ClientData;

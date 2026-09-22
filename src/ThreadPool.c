@@ -1,7 +1,10 @@
 #include "ThreadPool.h"
+#include "Channel.h"
 #include "XMalloc.h"
 
 #include <stdatomic.h>
+#include <stdint.h>
+#include <threads.h>
 
 int8_t
 ThreadPoolStart(ThreadPool* Self, uint8_t WorkersAmount, int (*Worker)(void*))

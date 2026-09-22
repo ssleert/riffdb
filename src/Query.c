@@ -1,4 +1,4 @@
-#include "Execute.h"
+#include "Query.h"
 #include <sqlite3.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -10,7 +10,7 @@
 #include "Request.h"
 
 void
-Execute(Request* Req)
+Query(Request* Req)
 {
   HttpResponse* Res = &Req->State.Response;
 

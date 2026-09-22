@@ -3,11 +3,15 @@
 #include "XMalloc.h"
 
 #include <getopt.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
-#define DEFAULT_PORT 9889
+enum
+{
+  DEFAULT_PORT = 9889
+};
 
 Options GOptions;
 
@@ -58,11 +62,12 @@ ParseOptions(int32_t Argc, char* Argv[])
   GOptions.Port = DEFAULT_PORT;
   GOptions.Directory = XStrdup(".");
   GOptions.Threads = GetDefaultThreads();
-  GOptions.ShowHelp = 0;
-  GOptions.ShowVersion = 0;
+  GOptions.ShowHelp = false;
+  GOptions.ShowVersion = false;
 
-  if (GOptions.Directory == NULL)
+  if (GOptions.Directory == NULL) {
     return -1;
+  }
 
   static const struct option LongOptions[] = {
     { "port", required_argument, NULL, 'p' },
@@ -74,11 +79,15 @@ ParseOptions(int32_t Argc, char* Argv[])
   };
 
   const char* ShortOptions = "p:d:t:hv";
-  int32_t Opt;
+  int32_t Opt = 0;
   int32_t OptionIndex = 0;
 
-  while ((Opt = getopt_long(
-            Argc, Argv, ShortOptions, LongOptions, &OptionIndex)) != -1) {
+  while ((Opt = getopt_long( // NOLINT(concurrency-mt-unsafe)
+            Argc,
+            Argv,
+            ShortOptions,
+            LongOptions,
+            &OptionIndex)) != -1) {
     switch (Opt) {
       case 'p': {
         char* End = NULL;
@@ -112,8 +121,6 @@ ParseOptions(int32_t Argc, char* Argv[])
       case 'v':
         GOptions.ShowVersion = true;
         break;
-      case '?':
-        return -1;
       default:
         return -1;
     }
@@ -121,8 +128,9 @@ ParseOptions(int32_t Argc, char* Argv[])
 
   if (optind < Argc) {
     fprintf(stderr, "%s: unexpected argument(s):", Argv[0]);
-    while (optind < Argc)
+    while (optind < Argc) {
       fprintf(stderr, " %s", Argv[optind++]);
+    }
     fputc('\n', stderr);
     return -1;
   }

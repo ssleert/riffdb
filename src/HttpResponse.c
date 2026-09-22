@@ -1,6 +1,7 @@
 #include "HttpResponse.h"
 #include "XMalloc.h"
 
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 

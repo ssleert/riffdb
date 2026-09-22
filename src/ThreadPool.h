@@ -3,8 +3,8 @@
 
 #include "Channel.h"
 
-#include <threads.h>
 #include <stdbool.h>
+#include <threads.h>
 
 typedef struct {
   Channel* MailBoxes; 
