@@ -1,5 +1,5 @@
-#ifndef HOME_SSLEERT_WORKSPACE_RIFFDB_SRC_QUERY_H
-#define HOME_SSLEERT_WORKSPACE_RIFFDB_SRC_QUERY_H
+#ifndef QUERY_H
+#define QUERY_H
 
 #include "Request.h"
 

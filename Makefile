@@ -7,6 +7,9 @@ build:
 format:
 	clang-format --style=Mozilla -i `find ./src | grep '\.c' | grep -v Greeting`
 
+lint:
+	clang-tidy `find ./src | grep '\.c'` -fix
+
 clean:
 	rm -rf ./build
 

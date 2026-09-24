@@ -1,5 +1,5 @@
-#ifndef XMALLOC_H_
-#define XMALLOC_H_
+#ifndef XMALLOC_H
+#define XMALLOC_H
 
 #include <stddef.h>
 
@@ -8,4 +8,4 @@ void* XCalloc(size_t Count, size_t Size);
 void* XRealloc(void* Ptr, size_t NewSize);
 void  XFree(void* Ptr);
 
-#endif /* XMALLOC_H_ */
+#endif

@@ -8,9 +8,6 @@
 #include <yyjson.h>
 
 int32_t DataBaseCreateIfNotExists(const char Dir[]);
-
-int32_t DataBaseBindJsonArgsToStmt(const yyjson_val* Args, sqlite3_stmt* Stmt);
-
 sqlite3* DataBaseOpen(const char Dir[], bool ReadOnly);
 
 #endif

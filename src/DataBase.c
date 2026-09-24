@@ -7,7 +7,6 @@
 #include "stddef.h"
 #include "stdio.h"
 #include "string.h"
-#include "yyjson.h"
 #include <stdint.h>
 
 int32_t
@@ -52,52 +51,6 @@ DataBaseCreateIfNotExists(const char Dir[])
   }
 
   sqlite3_close(Db);
-  return 0;
-}
-
-int32_t
-DataBaseBindJsonArgsToStmt(const yyjson_val* Args, sqlite3_stmt* Stmt)
-{
-  yyjson_val* Element = NULL;
-  yyjson_arr_iter ArgsIter = yyjson_arr_iter_with(Args);
-
-  while ((Element = yyjson_arr_iter_next(&ArgsIter))) {
-    int32_t Idx = ArgsIter.idx;
-    if (yyjson_is_str(Element)) {
-      const char* Str = yyjson_get_str(Element);
-      size_t Len = yyjson_get_len(Element);
-
-      sqlite3_bind_text(Stmt, Idx, Str, Len, NULL);
-      continue;
-    }
-
-    if (yyjson_is_int(Element)) {
-      int64_t Int = yyjson_get_sint(Element);
-
-      sqlite3_bind_int64(Stmt, Idx, Int);
-      continue;
-    }
-
-    if (yyjson_is_real(Element)) {
-      double Double = yyjson_get_real(Element);
-
-      sqlite3_bind_double(Stmt, Idx, Double);
-      continue;
-    }
-
-    if (yyjson_is_bool(Element)) {
-      bool Bool = yyjson_get_bool(Element);
-
-      sqlite3_bind_int(Stmt, Idx, (int32_t)Bool);
-      continue;
-    }
-
-    if (yyjson_is_null(Element)) {
-      sqlite3_bind_null(Stmt, Idx);
-      continue;
-    }
-  }
-
   return 0;
 }
 

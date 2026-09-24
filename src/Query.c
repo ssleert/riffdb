@@ -1,19 +1,21 @@
 #include "Query.h"
+#include "HttpResponse.h"
+#include "HttpUtils.h"
+#include "Log.h"
+#include "Protocol.h"
+#include "Request.h"
+#include "XMalloc.h"
 #include <sqlite3.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <yyjson.h>
-
-#include "DataBase.h"
-#include "HttpResponse.h"
-#include "HttpUtils.h"
-#include "Request.h"
 
 void
 Query(Request* Req)
 {
   HttpResponse* Res = &Req->State.Response;
 
+  yyjson_mut_doc* ResDoc = yyjson_mut_doc_new(NULL);
   yyjson_doc* Doc =
     yyjson_read(Req->State.Parser.Body, Req->State.Parser.ContentLength, 0);
   yyjson_val* Root = yyjson_doc_get_root(Doc);
@@ -43,20 +45,29 @@ Query(Request* Req)
     }
 
     if (Args != NULL && yyjson_arr_size(Args) != 0) {
-      DataBaseBindJsonArgsToStmt(Args, Stmt);
+      ProtocolBindJsonArgsToStmt(Args, Stmt);
     }
 
-    Rc = sqlite3_step(Stmt);
-    if (Rc != SQLITE_ROW && Rc != SQLITE_DONE) {
+    Rc = ProtocolJsonFromStmt(ResDoc, Stmt);
+    if (Rc != SQLITE_DONE) {
       HttpUtilsResError(Res, 400, sqlite3_errmsg(Req->Worker.Db));
       goto cleanup;
     }
 
+    size_t JsonLen = 0;
+    const char* Json = yyjson_mut_write(ResDoc, YYJSON_WRITE_NOFLAG, &JsonLen);
+    if (Json == NULL) {
+      HttpUtilsResError(Res, 500, "cant create json");
+      goto cleanup;
+    }
+
     HttpResponseStatusCode(Res, 200);
-    HttpResponseBody(Res, sizeof("ok") - 1, "ok");
+    HttpResponseBody(Res, JsonLen, Json);
+    XFree((void*)Json);
   }
 
 cleanup:
   sqlite3_finalize(Stmt);
   yyjson_doc_free(Doc);
+  yyjson_mut_doc_free(ResDoc);
 }

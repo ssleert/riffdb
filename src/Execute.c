@@ -4,9 +4,9 @@
 #include <stdint.h>
 #include <yyjson.h>
 
-#include "DataBase.h"
 #include "HttpResponse.h"
 #include "HttpUtils.h"
+#include "Protocol.h"
 #include "Request.h"
 
 void
@@ -43,7 +43,7 @@ Execute(Request* Req)
     }
 
     if (Args != NULL && yyjson_arr_size(Args) != 0) {
-      DataBaseBindJsonArgsToStmt(Args, Stmt);
+      ProtocolBindJsonArgsToStmt(Args, Stmt);
     }
 
     Rc = sqlite3_step(Stmt);

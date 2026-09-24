@@ -1,6 +1,7 @@
 #include "Router.h"
 #include "Execute.h"
 #include "HttpResponse.h"
+#include "Query.h"
 #include "Request.h"
 
 #include <stdint.h>
@@ -21,12 +22,14 @@ Hash(const char* str)
 }
 
 static uint32_t ExecuteRoute = 0;
+static uint32_t QueryRoute = 0;
 static uint32_t HealthRoute = 0;
 
 void
 RouterInit(void)
 {
   ExecuteRoute = Hash("/execute");
+  QueryRoute = Hash("/query");
   HealthRoute = Hash("/health");
 }
 
@@ -39,6 +42,10 @@ RouterRoute(Request* Req)
 
   if (Route == ExecuteRoute) {
     Execute(Req);
+    return;
+  }
+  if (Route == QueryRoute) {
+    Query(Req);
     return;
   }
   if (Route == HealthRoute) {
