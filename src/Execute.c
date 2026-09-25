@@ -6,8 +6,8 @@
 
 #include "HttpResponse.h"
 #include "HttpUtils.h"
-#include "Protocol.h"
 #include "Log.h"
+#include "Protocol.h"
 #include "Request.h"
 
 void
@@ -36,8 +36,8 @@ Execute(Request* Req)
 
     yyjson_val* Args = yyjson_obj_get(Root, "args");
 
-    int32_t Rc = sqlite3_prepare_v3(
-      Req->Worker.Db, Query, QueryLen, 0, &Stmt, NULL);
+    int32_t Rc =
+      sqlite3_prepare_v3(Req->Worker.Db, Query, QueryLen, 0, &Stmt, NULL);
     if (Rc != SQLITE_OK) {
       HttpUtilsResError(Res, 400, sqlite3_errmsg(Req->Worker.Db));
       goto cleanup;

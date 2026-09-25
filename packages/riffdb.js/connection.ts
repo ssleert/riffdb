@@ -6,10 +6,15 @@ export type Args = number | string | null | Uint8Array<ArrayBuffer>;
 
 export const connect = (options: Options) => {
   const c = async function <T = unknown>(
-    strs: TemplateStringsArray,
+    strs: TemplateStringsArray | string,
     ...args: Args[]
   ): Promise<T[]> {
-    const sql = strs.join("?");
+    let sql = "";
+    if (typeof strs == "string") {
+      sql = strs;
+    } else {
+      sql = strs.join("?");
+    }
 
     const req = JSON.stringify({
       q: sql,

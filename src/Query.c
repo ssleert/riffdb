@@ -38,8 +38,8 @@ Query(Request* Req)
 
     yyjson_val* Args = yyjson_obj_get(Root, "args");
 
-    int32_t Rc = sqlite3_prepare_v3(
-      Req->Worker.Db, Query, QueryLen, 0, &Stmt, NULL);
+    int32_t Rc =
+      sqlite3_prepare_v3(Req->Worker.Db, Query, QueryLen, 0, &Stmt, NULL);
     if (Rc != SQLITE_OK) {
       Err = sqlite3_errmsg(Req->Worker.Db);
       goto cleanup;
@@ -64,10 +64,7 @@ Query(Request* Req)
 
     if (Req->Cancel) {
       LogWarn("request canceled: fd = %d", Req->ClientFd);
-      sqlite3_finalize(Stmt);
-      yyjson_doc_free(Doc);
-      yyjson_mut_doc_free(ResDoc);
-      return;
+      goto cancel;
     }
 
     HttpResponseStatusCode(Res, 200);
@@ -80,10 +77,9 @@ Query(Request* Req)
   }
 
 cleanup:
-  if (!Req->Cancel) {
-    HttpUtilsResError(Res, 400, Err);
-  }
+  HttpUtilsResError(Res, 400, Err);
   LogErr(Err);
+cancel:
   sqlite3_finalize(Stmt);
   yyjson_doc_free(Doc);
   yyjson_mut_doc_free(ResDoc);

@@ -9,8 +9,8 @@
 #include "Router.h"
 #include "TcpServer.h"
 #include "ThreadPool.h"
-#include "Worker.h"
 #include "Utils.h"
+#include "Worker.h"
 #include "XMalloc.h"
 
 #include <sqlite3.h>
@@ -98,6 +98,10 @@ main(int32_t Argc, char* Argv[])
 #ifdef NTRACE
   LogMaxVerbosity = LOG_VERBOSITY_Info;
 #endif
+
+  if (getenv("NO_COLOR") != NULL) { // NOLINT(concurrency-mt-unsafe)
+    LogColored = false;
+  }
 
   RouterInit();
 

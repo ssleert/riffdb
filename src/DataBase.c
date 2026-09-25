@@ -3,10 +3,10 @@
 #include "Utils.h"
 #include "XMalloc.h"
 
+#include "Options.h"
 #include "sqlite3.h"
 #include "stddef.h"
 #include "stdio.h"
-#include "Options.h"
 #include "string.h"
 #include <stdint.h>
 
