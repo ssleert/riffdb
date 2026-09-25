@@ -55,9 +55,7 @@ Execute(Request* Req)
 
     if (Req->Cancel) {
       LogWarn("request canceled: fd = %d", Req->ClientFd);
-      sqlite3_finalize(Stmt);
-      yyjson_doc_free(Doc);
-      return;
+      goto cleanup;
     }
 
     HttpResponseStatusCode(Res, 200);
