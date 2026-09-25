@@ -103,3 +103,70 @@ ProtocolJsonFromStmt(yyjson_mut_doc* Doc, sqlite3_stmt* Stmt)
 
   return Rc;
 }
+
+int32_t
+ProtocolBindMsgpackArgsToStmt(cw_unpack_context* uc, sqlite3_stmt* Stmt)
+{
+  cw_unpack_next(uc);
+  if (uc->return_code != CWP_RC_OK || uc->item.type != CWP_ITEM_ARRAY) {
+    return -1;
+  }
+
+  uint32_t n = uc->item.as.array.size;
+  for (uint32_t i = 0; i < n; ++i) {
+    int32_t Idx = (int32_t)(i + 1);
+
+    cw_unpack_next(uc);
+    if (uc->return_code != CWP_RC_OK) {
+      return uc->return_code;
+    }
+
+    switch (uc->item.type) {
+      case CWP_ITEM_STR:
+        sqlite3_bind_text(Stmt,
+                          Idx,
+                          (const char*)uc->item.as.str.start,
+                          (int)uc->item.as.str.length,
+                          NULL);
+        break;
+
+      case CWP_ITEM_POSITIVE_INTEGER:
+        if (uc->item.as.u64 <= (uint64_t)INT64_MAX) {
+          sqlite3_bind_int64(Stmt, Idx, (int64_t)uc->item.as.u64);
+        } else {
+          sqlite3_bind_double(Stmt, Idx, (double)uc->item.as.u64);
+        }
+        break;
+
+      case CWP_ITEM_NEGATIVE_INTEGER:
+        sqlite3_bind_int64(Stmt, Idx, uc->item.as.i64);
+        break;
+
+      case CWP_ITEM_FLOAT:
+        sqlite3_bind_double(Stmt, Idx, (double)uc->item.as.real);
+        break;
+
+      case CWP_ITEM_DOUBLE:
+        sqlite3_bind_double(Stmt, Idx, uc->item.as.long_real);
+        break;
+
+      case CWP_ITEM_BOOLEAN:
+        sqlite3_bind_int(Stmt, Idx, (int32_t)uc->item.as.boolean);
+        break;
+
+      case CWP_ITEM_NIL:
+        sqlite3_bind_null(Stmt, Idx);
+        break;
+
+      case CWP_ITEM_BIN:
+        sqlite3_bind_blob(
+          Stmt, Idx, uc->item.as.bin.start, (int)uc->item.as.bin.length, NULL);
+        break;
+
+      default:
+        break;
+    }
+  }
+
+  return 0;
+}

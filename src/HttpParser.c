@@ -13,7 +13,8 @@ HttpParserSetContentLength(HttpParser* Parser)
 
   for (uint16_t i = 0; i < Parser->HeadersLen; ++i) {
     if (Parser->Headers[i].KeyLen == 14 &&
-        strncmp(Parser->Headers[i].Key, "Content-Length", 14) == 0) {
+        (strncmp(Parser->Headers[i].Key, "Content-Length", 14) == 0 ||
+         strncmp(Parser->Headers[i].Key, "content-length", 14) == 0)) {
       Parser->ContentLength =
         (uint32_t)strtoul(Parser->Headers[i].Value, NULL, 10);
       return Parser->ContentLength;

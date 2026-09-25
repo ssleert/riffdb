@@ -94,6 +94,10 @@ OnDisconnect(TcpServer* Server, int32_t ClientFd, void* ClientData)
 int
 main(int32_t Argc, char* Argv[])
 {
+#ifdef NTRACE
+  LogMaxVerbosity = LOG_VERBOSITY_Info;
+#endif
+
   RouterInit();
 
   if (ParseOptions(Argc, Argv) != 0) {

@@ -33,7 +33,47 @@ WorkerHandler(ThreadPoolWorker* Self)
 
     Req->Worker.Db = Db;
 
+    // Full parser dump
+    LogTrace("=== HttpParser dump ===");
+    LogTrace("  State          = %u", Req->State.Parser.State);
+    LogTrace("  SawCr          = %d", Req->State.Parser.SawCr);
+    LogTrace("  SawDoubleDot   = %d", Req->State.Parser.SawDoubleDot);
+    LogTrace("  Method         = %.*s (len=%u)",
+             Req->State.Parser.MethodLen,
+             Req->State.Parser.Method,
+             Req->State.Parser.MethodLen);
+    LogTrace("  Url            = %.*s (len=%u)",
+             Req->State.Parser.UrlLen,
+             Req->State.Parser.Url,
+             Req->State.Parser.UrlLen);
+    LogTrace("  HeadersLen     = %u", Req->State.Parser.HeadersLen);
+    for (uint8_t i = 0; i < Req->State.Parser.HeadersLen; i++) {
+      HttpHeader* H = &Req->State.Parser.Headers[i];
+      LogTrace("  Header[%u]      = %.*s: %.*s",
+               i,
+               H->KeyLen,
+               H->Key,
+               H->ValueLen,
+               H->Value);
+    }
+    LogTrace("  BodyStart      = %u", Req->State.Parser.BodyStart);
+    LogTrace("  BodyCap        = %u", Req->State.Parser.BodyCap);
+    LogTrace("  ConsumedBody   = %u", Req->State.Parser.ConsumedBody);
+    LogTrace("  ContentLength  = %u", Req->State.Parser.ContentLength);
+    if (Req->State.Parser.Body != NULL && Req->State.Parser.ContentLength > 0) {
+      LogTrace("  Body           = %.*s",
+               Req->State.Parser.ContentLength,
+               Req->State.Parser.Body);
+    } else {
+      LogTrace("  Body           = (null or empty)");
+    }
+    LogTrace("=== end HttpParser dump ===");
+
     RouterRoute(Req);
+
+    LogTrace("=== HttpResponse dump ===");
+    LogTrace("\n%.*s", Req->State.Response.Len, Req->State.Response.Buf);
+    LogTrace("=== end HttpResponse dump ===");
 
     int Rc = send(Req->ClientFd,
                   Req->State.Response.Buf,
