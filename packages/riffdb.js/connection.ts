@@ -2,10 +2,13 @@ export interface Options {
   host: string;
 }
 
-export type Args = number | string;
+export type Args = number | string | null | Uint8Array<ArrayBuffer>;
 
 export const connect = (options: Options) => {
-  const c = async function (strs: TemplateStringsArray, ...args: Args[]) {
+  const c = async function <T = unknown>(
+    strs: TemplateStringsArray,
+    ...args: Args[]
+  ): Promise<T[]> {
     const sql = strs.join("?");
 
     const req = JSON.stringify({
@@ -38,10 +41,15 @@ export const connect = (options: Options) => {
   };
 
   c.exec = async function (
-    strs: TemplateStringsArray,
+    strs: TemplateStringsArray | string,
     ...args: Args[]
   ): Promise<void> {
-    const sql = strs.join("?");
+    let sql = "";
+    if (typeof strs == "string") {
+      sql = strs;
+    } else {
+      sql = strs.join("?");
+    }
 
     const req = JSON.stringify({
       q: sql,

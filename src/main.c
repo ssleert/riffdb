@@ -10,6 +10,7 @@
 #include "TcpServer.h"
 #include "ThreadPool.h"
 #include "Worker.h"
+#include "Utils.h"
 #include "XMalloc.h"
 
 #include <sqlite3.h>
@@ -125,15 +126,26 @@ main(int32_t Argc, char* Argv[])
   LogInfo("Directory: %s", GOptions.Directory);
   LogInfo("Threads: %d", GOptions.Threads);
 
-  if (DataBaseCreateIfNotExists(GOptions.Directory)) {
-    return 1;
-  }
   if (strcmp(GOptions.Directory, ".") != 0) {
+    int32_t Rc = MkdirIfNotExists(GOptions.Directory);
+    if (Rc < 0) {
+      perror("chdir");
+      FreeOptions();
+      return EXIT_FAILURE;
+    }
     if (chdir(GOptions.Directory) != 0) {
       perror("chdir");
       FreeOptions();
       return EXIT_FAILURE;
     }
+  }
+
+  if (sqlite3_initialize()) {
+    return 1;
+  }
+
+  if (DataBaseCreateIfNotExists()) {
+    return 1;
   }
 
   TcpServer Server = { 0 };

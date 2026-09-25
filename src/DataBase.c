@@ -6,32 +6,37 @@
 #include "sqlite3.h"
 #include "stddef.h"
 #include "stdio.h"
+#include "Options.h"
 #include "string.h"
 #include <stdint.h>
 
 int32_t
-DataBaseCreateIfNotExists(const char Dir[])
+DataBaseCreateIfNotExists(void)
 {
-  int32_t Rc = MkdirIfNotExists(Dir);
-  if (Rc < 0) {
-    LogErr("Cant create dir.");
-    return -1;
-  }
-
+  int32_t Rc = 0;
   sqlite3* Db = NULL;
   char* Err = NULL;
 
-  char* DataBaseFile = XMalloc(strlen(Dir) + sizeof("/riff.db"));
-  sprintf(DataBaseFile, "%s/riff.db", Dir);
-
   Rc = sqlite3_open_v2(
-    DataBaseFile, &Db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, NULL);
-
-  XFree(DataBaseFile);
+    "./riff.db", &Db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, NULL);
 
   if (Rc != SQLITE_OK) {
-    LogErr("Cant open sqlite3 file on %s/riff.db", Dir);
+    LogErr("Cant open sqlite3 file on %s/riff.db", GOptions.Directory);
     sqlite3_free(Db);
+    return -1;
+  }
+
+  Rc = sqlite3_exec(Db,
+                    "PRAGMA journal_mode = WAL;"
+                    "PRAGMA synchronous = normal;"
+                    "PRAGMA temp_store = memory;",
+                    NULL,
+                    NULL,
+                    &Err);
+  if (Rc != SQLITE_OK) {
+    LogErr("Cant execute pragmas: %s", Err);
+    sqlite3_free(Err);
+    sqlite3_close(Db);
     return -1;
   }
 
@@ -55,12 +60,9 @@ DataBaseCreateIfNotExists(const char Dir[])
 }
 
 sqlite3*
-DataBaseOpen(const char Dir[], bool ReadOnly)
+DataBaseOpen(bool ReadOnly)
 {
   sqlite3* Db = NULL;
-
-  char* DataBaseFile = XMalloc(strlen(Dir) + sizeof("/riff.db"));
-  sprintf(DataBaseFile, "%s/riff.db", Dir);
 
   int32_t Flags = SQLITE_OPEN_CREATE;
   if (ReadOnly) {
@@ -69,11 +71,12 @@ DataBaseOpen(const char Dir[], bool ReadOnly)
     Flags = Flags | SQLITE_OPEN_READWRITE;
   }
 
-  int32_t Rc = sqlite3_open_v2(DataBaseFile, &Db, Flags, NULL);
-  XFree(DataBaseFile);
+  int32_t Rc = sqlite3_open_v2("./riff.db", &Db, Flags, NULL);
 
-  if (Rc != 0) {
-    LogErr("cant open sqlite connection for worker");
+  sqlite3_busy_timeout(Db, 5000);
+
+  if (Rc != SQLITE_OK) {
+    LogErr("cant open sqlite connection for worker: Rc = %d", Rc);
     return NULL;
   }
 

@@ -21,26 +21,27 @@ Query(Request* Req)
   yyjson_val* Root = yyjson_doc_get_root(Doc);
 
   sqlite3_stmt* Stmt = NULL;
+  const char* Err = NULL;
   {
     const yyjson_val* QueryObj = yyjson_obj_get(Root, "q");
     if (QueryObj == NULL) {
-      HttpUtilsResError(Res, 400, "query is empty");
+      Err = "query is empty";
       goto cleanup;
     }
 
     const char* Query = yyjson_get_str(QueryObj);
     size_t QueryLen = yyjson_get_len(QueryObj);
     if (QueryLen < 3) {
-      HttpUtilsResError(Res, 400, "query len < 3");
+      Err = "query len < 3";
       goto cleanup;
     }
 
     yyjson_val* Args = yyjson_obj_get(Root, "args");
 
     int32_t Rc = sqlite3_prepare_v3(
-      Req->Worker.Db, Query, QueryLen, SQLITE_PREPARE_PERSISTENT, &Stmt, NULL);
+      Req->Worker.Db, Query, QueryLen, 0, &Stmt, NULL);
     if (Rc != SQLITE_OK) {
-      HttpUtilsResError(Res, 400, sqlite3_errmsg(Req->Worker.Db));
+      Err = sqlite3_errmsg(Req->Worker.Db);
       goto cleanup;
     }
 
@@ -50,23 +51,39 @@ Query(Request* Req)
 
     Rc = ProtocolJsonFromStmt(ResDoc, Stmt);
     if (Rc != SQLITE_DONE) {
-      HttpUtilsResError(Res, 400, sqlite3_errmsg(Req->Worker.Db));
+      Err = sqlite3_errmsg(Req->Worker.Db);
       goto cleanup;
     }
 
     size_t JsonLen = 0;
     const char* Json = yyjson_mut_write(ResDoc, YYJSON_WRITE_NOFLAG, &JsonLen);
     if (Json == NULL) {
-      HttpUtilsResError(Res, 500, "cant create json");
+      Err = "cant create json";
       goto cleanup;
+    }
+
+    if (Req->Cancel) {
+      LogWarn("request canceled: fd = %d", Req->ClientFd);
+      sqlite3_finalize(Stmt);
+      yyjson_doc_free(Doc);
+      yyjson_mut_doc_free(ResDoc);
+      return;
     }
 
     HttpResponseStatusCode(Res, 200);
     HttpResponseBody(Res, JsonLen, Json);
     XFree((void*)Json);
+
+    yyjson_doc_free(Doc);
+    yyjson_mut_doc_free(ResDoc);
+    return;
   }
 
 cleanup:
+  if (!Req->Cancel) {
+    HttpUtilsResError(Res, 400, Err);
+  }
+  LogErr(Err);
   sqlite3_finalize(Stmt);
   yyjson_doc_free(Doc);
   yyjson_mut_doc_free(ResDoc);

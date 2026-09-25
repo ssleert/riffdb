@@ -18,7 +18,7 @@
 int32_t
 WorkerHandler(ThreadPoolWorker* Self)
 {
-  sqlite3* Db = DataBaseOpen(GOptions.Directory, false);
+  sqlite3* Db = DataBaseOpen(false);
   if (Db == NULL) {
     Self->Pool->Working = false;
     return 0;
@@ -85,7 +85,10 @@ WorkerHandler(ThreadPoolWorker* Self)
     HttpResponseZero(&Req->State.Response);
   }
 
-  sqlite3_close_v2(Db);
+  if (Db != NULL) {
+    sqlite3_close_v2(Db);
+  }
+
   XFree(Self);
   return 0;
 }

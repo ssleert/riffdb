@@ -7,7 +7,7 @@
 #include <sqlite3.h>
 #include <yyjson.h>
 
-int32_t DataBaseCreateIfNotExists(const char Dir[]);
-sqlite3* DataBaseOpen(const char Dir[], bool ReadOnly);
+int32_t DataBaseCreateIfNotExists(void);
+sqlite3* DataBaseOpen(bool ReadOnly);
 
 #endif
