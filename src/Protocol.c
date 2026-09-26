@@ -4,6 +4,7 @@
 int32_t
 ProtocolBindJsonArgsToStmt(const yyjson_val* Args, sqlite3_stmt* Stmt)
 {
+  // TODO: ssleert - add normal error handling
   yyjson_val* Element = NULL;
   yyjson_arr_iter ArgsIter = yyjson_arr_iter_with(Args);
 

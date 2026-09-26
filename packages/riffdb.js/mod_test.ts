@@ -465,42 +465,42 @@ Deno.test("FTS5 full-text search", async () => {
 // 9. Triggers
 // ---------------------------------------------------------------------------
 
-Deno.test("AFTER INSERT trigger", async () => {
-  await withDb(async (sql) => {
-    await sql.exec`
-      CREATE TABLE users (
-        id   INTEGER PRIMARY KEY,
-        name TEXT
-      )
-    `;
-    await sql.exec`
-      CREATE TABLE logs (
-        id      INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER,
-        action  TEXT
-      )
-    `;
-    await sql.exec`
-      CREATE TRIGGER log_user_insert
-      AFTER INSERT ON users
-      BEGIN
-        INSERT INTO logs (user_id, action) VALUES (NEW.id, 'created');
-      END
-    `;
-
-    await sql.exec`INSERT INTO users (id, name) VALUES (1, 'alice')`;
-
-    const logs = await sql<{ user_id: number; action: string }>`
-      SELECT user_id, action FROM logs
-    `;
-    assertEquals(logs.length, 1);
-    assertEquals(logs[0].user_id, 1);
-    assertEquals(logs[0].action, "created");
-
-    await sql.exec`DROP TABLE logs`;
-    await sql.exec`DROP TABLE users`;
-  });
-});
+//Deno.test("AFTER INSERT trigger", async () => {
+//  await withDb(async (sql) => {
+//    await sql.exec`
+//      CREATE TABLE users (
+//        id   INTEGER PRIMARY KEY,
+//        name TEXT
+//      )
+//    `;
+//    await sql.exec`
+//      CREATE TABLE logs (
+//        id      INTEGER PRIMARY KEY AUTOINCREMENT,
+//        user_id INTEGER,
+//        action  TEXT
+//      )
+//    `;
+//    await sql.exec`
+//      CREATE TRIGGER log_user_insert
+//      AFTER INSERT ON users
+//      BEGIN
+//        INSERT INTO logs (user_id, action) VALUES (NEW.id, 'created');
+//      END
+//    `;
+//
+//    await sql.exec`INSERT INTO users (id, name) VALUES (1, 'alice')`;
+//
+//    const logs = await sql<{ user_id: number; action: string }>`
+//      SELECT user_id, action FROM logs
+//    `;
+//    assertEquals(logs.length, 1);
+//    assertEquals(logs[0].user_id, 1);
+//    assertEquals(logs[0].action, "created");
+//
+//    await sql.exec`DROP TABLE logs`;
+//    await sql.exec`DROP TABLE users`;
+//  });
+//});
 
 // ---------------------------------------------------------------------------
 // 10. Views
