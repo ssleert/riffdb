@@ -36,9 +36,9 @@ else()
   )
 endif()
 
-include_directories(./sqlite)
-include_directories(./yyjson)
-include_directories(./cwpack)
+include_directories(./libs/sqlite)
+include_directories(./libs/yyjson)
+include_directories(./libs/cwpack)
 include_directories(./src)
 
 add_compile_options(
@@ -69,7 +69,7 @@ add_definitions(
 file(GLOB_RECURSE SOURCES src/*.c)
 
 add_executable(${CMAKE_PROJECT_NAME} ${SOURCES} 
-  yyjson/yyjson.c 
-  sqlite/sqlite3.c
-  cwpack/cwpack.c
+  libs/yyjson/yyjson.c 
+  libs/sqlite/sqlite3.c
+  libs/cwpack/cwpack.c
 )
