@@ -18,6 +18,7 @@ Execute(Request* Req)
   HttpResponse* Res = &Req->State.Response;
 
   ServiceState State = {
+    .Cancel = &Req->Cancel,
     .Db = Req->Worker.Db,
     .Payload = Req->State.Parser.Body,
     .PayloadLen = Req->State.Parser.ContentLength,
@@ -25,8 +26,11 @@ Execute(Request* Req)
 
   ServiceError Rc = ServiceExecute(&State);
   if (Rc != ServiceOK) {
-    HttpResponseStatusCode(Res, State.Status);
-    HttpResponseBody(Res, State.ResSize, State.Res);
+    LogTrace("Rc = %d", Rc);
+    if (Rc != ServiceErrorCancel) {
+      HttpUtilsResError(Res, State.Status, State.Res);
+      return;
+    }
 
     if (Rc == ServiceErrorSqlite) {
       XFree((void*)State.Res);

@@ -26,6 +26,9 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Debug")
 endif()
 
+option(BUILD_SHARED_LIBS "" OFF)
+add_subdirectory(libs/wolfssl)
+
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
   set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
   add_compile_options(
@@ -56,9 +59,6 @@ include_directories(libs/sqlite)
 include_directories(libs/yyjson)
 include_directories(libs/cwpack)
 include_directories(src)
-
-option(BUILD_SHARED_LIBS "" OFF)
-add_subdirectory(libs/wolfssl)
 
 add_compile_options(
   -Wno-nan-infinity-disabled

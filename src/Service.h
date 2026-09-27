@@ -13,9 +13,11 @@ typedef enum {
   ServiceErrorProtocol = -4,
   ServiceErrorSqlite = -5,
   ServiceErrorCantCreateJSON = -6,
+  ServiceErrorCancel = -7,
 } ServiceError;
 
 typedef struct { 
+  _Atomic(bool)* Cancel;
   sqlite3 *Db;
   const char* Payload;
   const uint32_t PayloadLen;

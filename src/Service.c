@@ -12,7 +12,9 @@
 #include <yyjson.h>
 
 static inline ServiceError
-Prepare(const char** Err,
+Prepare(
+  _Atomic(bool)* Cancel,
+    const char** Err,
 
         uint32_t PayloadLen,
         const char Payload[PayloadLen],
@@ -20,6 +22,9 @@ Prepare(const char** Err,
         sqlite3* Db,
         sqlite3_stmt** Stmt)
 {
+  if (*Cancel) {
+    return ServiceErrorCancel;
+  }
   yyjson_doc* Doc = yyjson_read(Payload, PayloadLen, 0);
   if (Doc == NULL) {
     *Err = "query len < 3";
@@ -67,7 +72,7 @@ ServiceExecute(ServiceState* Self)
   yyjson_doc* Doc = NULL;
 
   {
-    Ret = Prepare(&Self->Res, Self->PayloadLen, Self->Payload, Self->Db, &Stmt);
+    Ret = Prepare(Self->Cancel, &Self->Res, Self->PayloadLen, Self->Payload, Self->Db, &Stmt);
     if (Ret != ServiceOK) {
       goto cleanup;
     }
@@ -105,7 +110,7 @@ ServiceQuery(ServiceState* Self)
 
   yyjson_mut_doc* ResDoc = yyjson_mut_doc_new(NULL);
   {
-    Ret = Prepare(&Self->Res, Self->PayloadLen, Self->Payload, Self->Db, &Stmt);
+    Ret = Prepare(Self->Cancel, &Self->Res, Self->PayloadLen, Self->Payload, Self->Db, &Stmt);
     if (Ret != ServiceOK) {
       goto cleanup;
     }

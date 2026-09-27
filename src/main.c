@@ -7,6 +7,7 @@
 #include "Options.h"
 #include "Request.h"
 #include "Router.h"
+#include "SocketActions.h"
 #include "TcpServer.h"
 #include "ThreadPool.h"
 #include "Utils.h"
@@ -23,76 +24,6 @@
 #include <string.h>
 #include <unistd.h>
 
-static ThreadPool GPool = { 0 };
-
-static void
-OnConnect(TcpServer* Server, int32_t ClientFd, void** ClientData)
-{
-  (void)Server;
-
-  LogTrace("Client connected: fd=%d", ClientFd);
-
-  *ClientData = XMalloc(sizeof(Request));
-
-  *((Request*)(*ClientData)) = (Request){
-    .ClientFd = ClientFd,
-  };
-
-  HttpParserInit(&((Request*)*ClientData)->State.Parser);
-  HttpResponseInit(&((Request*)*ClientData)->State.Response);
-}
-
-static int16_t
-OnReadable(TcpServer* Server, int32_t ClientFd, void* ClientData)
-{
-  (void)Server;
-
-  Request* Req = ClientData;
-
-  char Buffer[8192];
-  ssize_t N = read(ClientFd, Buffer, sizeof(Buffer));
-
-  if (N == 0) {
-    return TcpServerErrorEmptyRead;
-  }
-  if (N < 0) {
-    return TcpServerErrorRead;
-  }
-
-  HttpParserError rc = HttpParserParse(&Req->State.Parser, N, Buffer);
-  if (rc < 0) {
-    LogErr("body parsing fucked up %d", rc);
-  }
-
-  if (Req->State.Parser.State != HttpParserStateBody &&
-      Req->State.Parser.State != HttpParserStateComplete) {
-    return 0;
-  }
-
-  rc = HttpParserParseBody(&Req->State.Parser, N, Buffer);
-  if (rc < 0) {
-    XFree(Req);
-    LogErr("body parsing fucked up %d", rc);
-  }
-
-  ThreadPoolProcess(&GPool, Req);
-
-  return 0;
-}
-
-static void
-OnDisconnect(TcpServer* Server, int32_t ClientFd, void* ClientData)
-{
-  (void)Server;
-
-  LogTrace("Client disconnected: fd=%d", ClientFd);
-
-  Request* Req = ClientData;
-  HttpParserFree(&Req->State.Parser);
-  HttpResponseFree(&Req->State.Response);
-
-  Req->Cancel = true;
-}
 
 int
 main(int32_t Argc, char* Argv[])
@@ -154,7 +85,7 @@ main(int32_t Argc, char* Argv[])
     return 1;
   }
 
-  if (wolfSSL_Init()) {
+  if (wolfSSL_Init() != SSL_SUCCESS) {
     LogErr("cant init wolfssl");
     return 1;
   }
@@ -165,23 +96,28 @@ main(int32_t Argc, char* Argv[])
 
   TcpServer Server = { 0 };
 
-  if (TcpServerCreate(&Server, GOptions.Port, 4096) != 0) {
+  if (TcpServerCreate(&Server, GOptions.Port, 1024) != 0) {
     perror("Failed to create server");
     return 1;
   }
 
+  ThreadPool Pool = { 0 };
   if (ThreadPoolStart(
-        &GPool, GOptions.Threads, (int (*)(void*))WorkerHandler) != 0) {
+        &Pool, GOptions.Threads, (int (*)(void*))WorkerHandler) != 0) {
     LogErr("Failed to start thread pool");
     return 1;
   }
 
-  TcpServerSetCallbacks(&Server, OnConnect, OnReadable, OnDisconnect, NULL);
+  TcpServerSetCallbacks(&Server,
+                        SocketActionsOnConnect,
+                        SocketActionsOnReadable,
+                        SocketActionsOnDisconnect,
+                        &Pool);
 
   LogInfo("Listening on port %d...", GOptions.Port);
   TcpServerRun(&Server);
 
-  ThreadPoolStop(&GPool);
+  ThreadPoolStop(&Pool);
 
   TcpServerDestroy(&Server);
 
