@@ -6,6 +6,22 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 project(riffdb LANGUAGES C)
 
+add_definitions(
+  -D_POSIX_C_SOURCE=200809L
+  -DSQLITE_THREADSAFE=1
+  -DSQLITE_STRICT_SUBTYPE=1
+  -DSQLITE_OMIT_AUTOINIT=1
+  -DSQLITE_OMIT_SHARED_CACHE=1
+  -DSQLITE_OMIT_PROGRESS_CALLBACK=1
+  -DSQLITE_OMIT_DEPRECATED=1
+  -DSQLITE_OMIT_DECLTYPE=1 # remove
+  -DSQLITE_MAX_EXPR_DEPTH=0
+  -DSQLITE_LIKE_DOESNT_MATCH_BLOBS=1
+  -DSQLITE_DEFAULT_WAL_SYNCHRONOUS=1
+  -DSQLITE_DEFAULT_MEMSTATUS=0
+  -DSQLITE_DQS=0
+)
+
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Debug")
 endif()
@@ -36,10 +52,13 @@ else()
   )
 endif()
 
-include_directories(./libs/sqlite)
-include_directories(./libs/yyjson)
-include_directories(./libs/cwpack)
-include_directories(./src)
+include_directories(libs/sqlite)
+include_directories(libs/yyjson)
+include_directories(libs/cwpack)
+include_directories(src)
+
+option(BUILD_SHARED_LIBS "" OFF)
+add_subdirectory(libs/wolfssl)
 
 add_compile_options(
   -Wno-nan-infinity-disabled
@@ -50,22 +69,6 @@ add_compile_options(
   -Wno-format-nonliteral
   -Wjump-misses-init -Wlogical-op
 )
-add_definitions(
-  -D_POSIX_C_SOURCE=200809L
-  -DSQLITE_THREADSAFE=1
-  -DSQLITE_STRICT_SUBTYPE=1
-  -DSQLITE_OMIT_AUTOINIT=1
-  -DSQLITE_OMIT_SHARED_CACHE=1
-  -DSQLITE_OMIT_PROGRESS_CALLBACK=1
-  -DSQLITE_OMIT_DEPRECATED=1
-  -DSQLITE_OMIT_DECLTYPE=1 # remove
-  -DSQLITE_MAX_EXPR_DEPTH=0
-  -DSQLITE_LIKE_DOESNT_MATCH_BLOBS=1
-  -DSQLITE_DEFAULT_WAL_SYNCHRONOUS=1
-  -DSQLITE_DEFAULT_MEMSTATUS=0
-  -DSQLITE_DQS=0
-)
-
 file(GLOB_RECURSE SOURCES src/*.c)
 
 add_executable(${CMAKE_PROJECT_NAME} ${SOURCES} 
@@ -73,3 +76,5 @@ add_executable(${CMAKE_PROJECT_NAME} ${SOURCES}
   libs/sqlite/sqlite3.c
   libs/cwpack/cwpack.c
 )
+
+target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE wolfssl)
