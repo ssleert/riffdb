@@ -13,8 +13,10 @@ ImplementationFileExtensions:
   - cpp
   - cxx
 HeaderFilterRegex: '.*'
-ExcludeHeaderFilterRegex: 'sqlite3\.h|yyjson\.h'
+ExcludeHeaderFilterRegex: 'sqlite3\.h|yyjson\.h|wolfssl'
 CheckOptions:
+  - key: misc-header-include-cycle.IgnoredFilesList
+    value: '.*wolfssl.*'
   - key: readability-function-cognitive-complexity.Threshold
     value: '65'
 FormatStyle:     none

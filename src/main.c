@@ -14,6 +14,8 @@
 #include "XMalloc.h"
 
 #include <sqlite3.h>
+#include <wolfssl/options.h>
+#include <wolfssl/ssl.h>
 
 #include <stdint.h>
 #include <stdio.h>
@@ -120,6 +122,9 @@ main(int32_t Argc, char* Argv[])
   if (GOptions.ShowVersion) {
     PrintVersion(PROGRAM_NAME, PROGRAM_VERSION);
     PrintVersion("sqlite", sqlite3_version);
+    PrintVersion("wolfssl", wolfSSL_lib_version());
+    PrintVersion("yyjson", YYJSON_VERSION_STRING);
+    PrintVersion("cwpack", "commit 833fec9");
     FreeOptions();
     return EXIT_SUCCESS;
   }
@@ -145,6 +150,12 @@ main(int32_t Argc, char* Argv[])
   }
 
   if (sqlite3_initialize()) {
+    LogErr("cant init sqlite");
+    return 1;
+  }
+
+  if (wolfSSL_Init()) {
+    LogErr("cant init wolfssl");
     return 1;
   }
 
