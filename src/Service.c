@@ -12,9 +12,8 @@
 #include <yyjson.h>
 
 static inline ServiceError
-Prepare(
-  _Atomic(bool)* Cancel,
-    const char** Err,
+Prepare(_Atomic(bool)* Cancel,
+        const char** Err,
 
         uint32_t PayloadLen,
         const char Payload[PayloadLen],
@@ -72,7 +71,12 @@ ServiceExecute(ServiceState* Self)
   yyjson_doc* Doc = NULL;
 
   {
-    Ret = Prepare(Self->Cancel, &Self->Res, Self->PayloadLen, Self->Payload, Self->Db, &Stmt);
+    Ret = Prepare(Self->Cancel,
+                  &Self->Res,
+                  Self->PayloadLen,
+                  Self->Payload,
+                  Self->Db,
+                  &Stmt);
     if (Ret != ServiceOK) {
       goto cleanup;
     }
@@ -110,7 +114,12 @@ ServiceQuery(ServiceState* Self)
 
   yyjson_mut_doc* ResDoc = yyjson_mut_doc_new(NULL);
   {
-    Ret = Prepare(Self->Cancel, &Self->Res, Self->PayloadLen, Self->Payload, Self->Db, &Stmt);
+    Ret = Prepare(Self->Cancel,
+                  &Self->Res,
+                  Self->PayloadLen,
+                  Self->Payload,
+                  Self->Db,
+                  &Stmt);
     if (Ret != ServiceOK) {
       goto cleanup;
     }

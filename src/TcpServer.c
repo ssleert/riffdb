@@ -1,6 +1,7 @@
 #include "TcpServer.h"
 #include "XMalloc.h"
 
+#include "Log.h"
 #include <errno.h>
 #include <stdint.h>
 #include <string.h>
@@ -28,7 +29,7 @@ SetNonBlocking(int32_t Fd)
 static void
 RemoveClient(TcpServer* Server, uint16_t Index)
 {
-  int32_t Fd = Server->PollFds[Index + 1].fd;
+  int32_t Fd = Server->PollFds[Index + 2].fd;
   void* ClientData = Server->ClientsData[Index];
 
   Server->OnDisconnect(Server, Fd, ClientData);
@@ -38,7 +39,7 @@ RemoveClient(TcpServer* Server, uint16_t Index)
   uint16_t Last = Server->ClientCount - 1;
   if (Index != Last) {
     Server->ClientsData[Index] = Server->ClientsData[Last];
-    Server->PollFds[Index + 1] = Server->PollFds[Last + 1];
+    Server->PollFds[Index + 2] = Server->PollFds[Last + 2];
   }
 
   Server->ClientCount--;
@@ -51,22 +52,30 @@ TcpServerCreate(TcpServer* Server, uint16_t Port, uint16_t MaxClients)
     return -1;
   }
 
-  bool isError = false;
   int32_t ListenFd = -1;
   int32_t Opt = 1;
 
   {
-    memset(Server, 0, sizeof(*Server));
+    *Server = (TcpServer){ 0 };
     Server->MaxClients = MaxClients;
     Server->ListenFd = -1;
+    Server->SelfPipe[0] = -1;
+    Server->SelfPipe[1] = -1;
 
-    Server->PollFds = XCalloc((size_t)MaxClients + 1, sizeof(struct pollfd));
+    Server->PollFds = XCalloc((size_t)MaxClients + 2, sizeof(struct pollfd));
     Server->ClientsData =
       (void**)XCalloc(MaxClients, sizeof(Server->ClientsData[0]));
 
+    if (pipe(Server->SelfPipe) < 0) {
+      goto error;
+    }
+    if (SetNonBlocking(Server->SelfPipe[0]) < 0 ||
+        SetNonBlocking(Server->SelfPipe[1]) < 0) {
+      goto error;
+    }
+
     ListenFd = socket(AF_INET, SOCK_STREAM, 0);
     if (ListenFd < 0) {
-      isError = true;
       goto error;
     }
 
@@ -74,7 +83,6 @@ TcpServerCreate(TcpServer* Server, uint16_t Port, uint16_t MaxClients)
     setsockopt(ListenFd, SOL_SOCKET, 15, &Opt, sizeof(Opt));
 
     if (SetNonBlocking(ListenFd) < 0) {
-      isError = true;
       goto error;
     }
 
@@ -87,32 +95,37 @@ TcpServerCreate(TcpServer* Server, uint16_t Port, uint16_t MaxClients)
     };
 
     if (bind(ListenFd, (struct sockaddr*)&Addr, sizeof(Addr)) < 0) {
-      isError = true;
       goto error;
     }
 
     if (listen(ListenFd, 128) < 0) {
-      isError = true;
       goto error;
     }
-  }
-error:
-  if (isError) {
-    if (ListenFd > 0) {
-      close(ListenFd);
-    }
-    XFree(Server->PollFds);
-    XFree((void*)Server->ClientsData);
-
-    return -1;
   }
 
   Server->ListenFd = ListenFd;
   Server->PollFds[0].fd = ListenFd;
   Server->PollFds[0].events = POLLIN;
+  Server->PollFds[1].fd = Server->SelfPipe[0];
+  Server->PollFds[1].events = POLLIN;
   Server->Running = false;
 
   return 0;
+
+error:
+  if (ListenFd > 0) {
+    close(ListenFd);
+  }
+  if (Server->SelfPipe[0] >= 0) {
+    close(Server->SelfPipe[0]);
+  }
+  if (Server->SelfPipe[1] >= 0) {
+    close(Server->SelfPipe[1]);
+  }
+  XFree(Server->PollFds);
+  XFree((void*)Server->ClientsData);
+
+  return -1;
 }
 
 void
@@ -131,6 +144,13 @@ TcpServerDestroy(TcpServer* Server)
   if (Server->ListenFd >= 0) {
     close(Server->ListenFd);
     Server->ListenFd = -1;
+  }
+
+  if (Server->SelfPipe[0] >= 0) {
+    close(Server->SelfPipe[0]);
+  }
+  if (Server->SelfPipe[1] >= 0) {
+    close(Server->SelfPipe[1]);
   }
 
   XFree(Server->PollFds);
@@ -162,8 +182,14 @@ TcpServerStop(TcpServer* Server)
   if (Server) {
     Server->Running = false;
   }
+
+  if (Server->SelfPipe[1] >= 0) {
+    char byte = 0;
+    write(Server->SelfPipe[1], &byte, 1);
+  }
 }
 
+// NOLINTBEGIN(readability-function-cognitive-complexity)
 int32_t
 TcpServerRun(TcpServer* Server)
 {
@@ -173,12 +199,14 @@ TcpServerRun(TcpServer* Server)
 
   Server->Running = true;
 
-  while (Server->Running) {
-    int32_t Nfds = Server->ClientCount + 1;
+  char Buf[64] = { 0 };
+  do {
+    int32_t Nfds = Server->ClientCount + 2;
     int32_t Ready = poll(Server->PollFds, (nfds_t)Nfds, -1);
 
     if (Ready < 0) {
       if (errno == EINTR) {
+        LogWarn("interrupt");
         continue;
       }
       return -1;
@@ -186,6 +214,22 @@ TcpServerRun(TcpServer* Server)
 
     if (Ready == 0) {
       continue;
+    }
+
+    if (Server->PollFds[1].revents & (POLLIN | POLLERR | POLLHUP)) {
+      for (;;) {
+        ssize_t n = read(Server->SelfPipe[0], &Buf, sizeof(Buf));
+        if (n < 0) {
+          if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            break;
+          }
+          break;
+        }
+        if (n == 0) {
+          break;
+        }
+      }
+      break;
     }
 
     if (Server->PollFds[0].revents & (POLLIN | POLLERR | POLLHUP)) {
@@ -202,7 +246,7 @@ TcpServerRun(TcpServer* Server)
           break;
         }
 
-        if (Server->ClientCount >= Server->MaxClients) {
+        if (Server->ClientCount >= Server->MaxClients-2) {
           close(ClientFd);
           continue;
         }
@@ -215,9 +259,9 @@ TcpServerRun(TcpServer* Server)
         uint16_t Idx = Server->ClientCount;
 
         Server->ClientsData[Idx] = NULL;
-        Server->PollFds[Idx + 1].fd = ClientFd;
-        Server->PollFds[Idx + 1].events = POLLIN;
-        Server->PollFds[Idx + 1].revents = 0;
+        Server->PollFds[Idx + 2].fd = ClientFd;
+        Server->PollFds[Idx + 2].events = POLLIN;
+        Server->PollFds[Idx + 2].revents = 0;
 
         Server->ClientCount++;
 
@@ -226,12 +270,12 @@ TcpServerRun(TcpServer* Server)
     }
 
     for (int16_t i = (int16_t)Server->ClientCount - 1; i >= 0; i--) {
-      short Rev = Server->PollFds[i + 1].revents;
+      short Rev = Server->PollFds[i + 2].revents;
       if (Rev == 0) {
         continue;
       }
 
-      int32_t Fd = Server->PollFds[i + 1].fd;
+      int32_t Fd = Server->PollFds[i + 2].fd;
       void* ClientData = Server->ClientsData[i];
 
       if (Rev & (POLLERR | POLLHUP | POLLNVAL)) {
@@ -256,7 +300,8 @@ TcpServerRun(TcpServer* Server)
         }
       }
     }
-  }
+  } while (Server->Running);
 
   return 0;
 }
+// NOLINTEND(readability-function-cognitive-complexity)

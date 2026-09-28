@@ -3,6 +3,7 @@
 #include "HttpResponse.h"
 #include "Log.h"
 #include "Request.h"
+#include "TcpServer.h"
 #include "ThreadPool.h"
 #include "XMalloc.h"
 #include "main.h"
@@ -37,7 +38,7 @@ SocketActionsOnReadable(TcpServer* Server, int32_t ClientFd, void* ClientData)
 {
   Request* Req = ClientData;
 
-  char Buffer[8192];
+  char Buffer[16384];
   ssize_t N = read(ClientFd, Buffer, sizeof(Buffer));
 
   if (N == 0) {
@@ -59,8 +60,8 @@ SocketActionsOnReadable(TcpServer* Server, int32_t ClientFd, void* ClientData)
 
   rc = HttpParserParseBody(&Req->State.Parser, N, Buffer);
   if (rc < 0) {
-    XFree(Req);
     LogErr("body parsing fucked up %d", rc);
+    return TcpServerErrorRead;
   }
 
   ThreadPoolProcess((ThreadPool*)Server->UserData, Req);
@@ -72,12 +73,12 @@ void
 SocketActionsOnDisconnect(TcpServer* Server, int32_t ClientFd, void* ClientData)
 {
   (void)Server;
-
-  LogTrace("Client disconnected: fd=%d", ClientFd);
-
   Request* Req = ClientData;
-  HttpParserFree(&Req->State.Parser);
-  HttpResponseFree(&Req->State.Response);
 
   Req->Cancel = true;
+  HttpParserFree(&Req->State.Parser);
+  HttpResponseFree(&Req->State.Response);
+  XFree(ClientData);
+
+  LogTrace("Client disconnected: fd=%d", ClientFd);
 }

@@ -18,12 +18,22 @@
 #include <wolfssl/options.h>
 #include <wolfssl/ssl.h>
 
+#include <signal.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
+static TcpServer* TcpServerInstance = NULL;
+static void
+SignalHandler(int Sig)
+{
+  signal(Sig, SignalHandler);
+
+  // NOLINTNEXTLINE(bugprone-signal-handler,cert-msc54-cpp,cert-sig30-c)
+  TcpServerStop(TcpServerInstance);
+}
 
 int
 main(int32_t Argc, char* Argv[])
@@ -101,9 +111,11 @@ main(int32_t Argc, char* Argv[])
     return 1;
   }
 
+  TcpServerInstance = &Server;
+
   ThreadPool Pool = { 0 };
-  if (ThreadPoolStart(
-        &Pool, GOptions.Threads, (int (*)(void*))WorkerHandler) != 0) {
+  if (ThreadPoolStart(&Pool, GOptions.Threads, (int (*)(void*))WorkerHandler) !=
+      0) {
     LogErr("Failed to start thread pool");
     return 1;
   }
@@ -115,6 +127,11 @@ main(int32_t Argc, char* Argv[])
                         &Pool);
 
   LogInfo("Listening on port %d...", GOptions.Port);
+
+  signal(SIGINT, SignalHandler);
+  signal(SIGTERM, SignalHandler);
+  signal(SIGABRT, SignalHandler);
+
   TcpServerRun(&Server);
 
   ThreadPoolStop(&Pool);

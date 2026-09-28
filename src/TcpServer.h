@@ -23,6 +23,7 @@ typedef struct TcpClient {
 
 typedef struct TcpServer {
   int32_t                 ListenFd;
+  int32_t                 SelfPipe[2];
   struct pollfd*          PollFds;
   void**                  ClientsData;
   uint16_t                MaxClients;

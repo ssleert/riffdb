@@ -53,6 +53,12 @@ ThreadPoolStop(ThreadPool* Self)
   }
 
   Self->Working = false;
+
+  bool Signal = true;
+  for (uint8_t i = 0; i < Self->MailBoxesSize; ++i) {
+    ChannelSend(&Self->MailBoxes[i], &Signal);
+  }
+
   for (uint8_t i = 0; i < Self->WorkersSize; ++i) {
     thrd_join(Self->Workers[i], NULL);
   }

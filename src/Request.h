@@ -6,8 +6,11 @@
 #include "HttpResponse.h"
 
 #include <stdint.h>
+#include <stdbool.h>
 
 typedef struct {
+  bool Signal;
+
   struct {
     HttpParser Parser; 
     HttpResponse Response;

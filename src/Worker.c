@@ -26,6 +26,11 @@ WorkerHandler(ThreadPoolWorker* Self)
 
   while (Self->Pool->Working) {
     Request* Req = ChannelRecv(Self->MailBox);
+    if (Req->Signal) {
+      LogTrace("worker signaled");
+      continue;
+    }
+
     if (Req->Cancel) {
       LogWarn("Request Canceled");
       continue;
