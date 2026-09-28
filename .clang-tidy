@@ -1,5 +1,5 @@
 ---
-Checks:          '*,-llvmlibc-restrict-system-libc-headers,-altera*,-readability-identifier-length,-hicpp-signed-bitwise,-bugprone-narrowing-conversions,-cppcoreguidelines-narrowing-conversions,-cert-err33-c,-llvm-header-guard,-cppcoreguidelines-avoid-magic-numbers,-readability-magic-numbers,-clang-analyzer-optin.core.EnumCastOutOfRange,-bugprone-easily-swappable-parameters,-android-cloexec-accept,-clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,-cppcoreguidelines-avoid-non-const-global-variables,-misc-include-cleaner,-clang-diagnostic-c23-extensions'
+Checks:          '*,-llvmlibc-restrict-system-libc-headers,-altera*,-readability-identifier-length,-hicpp-signed-bitwise,-bugprone-narrowing-conversions,-cppcoreguidelines-narrowing-conversions,-cert-err33-c,-llvm-header-guard,-cppcoreguidelines-avoid-magic-numbers,-readability-magic-numbers,-clang-analyzer-optin.core.EnumCastOutOfRange,-bugprone-easily-swappable-parameters,-android-cloexec-accept,-clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,-cppcoreguidelines-avoid-non-const-global-variables,-misc-include-cleaner,-clang-diagnostic-c23-extensions,-android-cloexec-pipe'
 WarningsAsErrors: ''
 HeaderFileExtensions:
   - ''
