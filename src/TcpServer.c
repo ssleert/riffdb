@@ -246,7 +246,7 @@ TcpServerRun(TcpServer* Server)
           break;
         }
 
-        if (Server->ClientCount >= Server->MaxClients-2) {
+        if (Server->ClientCount >= Server->MaxClients - 2) {
           close(ClientFd);
           continue;
         }

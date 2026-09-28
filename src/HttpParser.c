@@ -129,6 +129,7 @@ HttpParserParse(HttpParser* Self, size_t Len, const char Data[Len])
         }
 
         if (Byte == ' ' && Self->SawDoubleDot) {
+          // TODO: ssleert - out of bound access
           Self->Headers[Self->HeadersLen]
             .Key[Self->Headers[Self->HeadersLen].KeyLen] = '\0';
           Self->State = HttpParserStateHeaderValue;
@@ -177,6 +178,7 @@ HttpParserParse(HttpParser* Self, size_t Len, const char Data[Len])
         }
 
         if (Byte == '\n' && Self->SawCr) {
+          // TODO: ssleert - out of bound access
           Self->Headers[Self->HeadersLen]
             .Value[Self->Headers[Self->HeadersLen].ValueLen] = '\0';
           Self->State = HttpParserStateHeaderKey;
